@@ -1,0 +1,16 @@
+Time,Melbourne Temp,Antarctic Temp,,
+9:32:46,17,-4,,Expected Behavour:
+9:32:58,1,-11,,"Read and record every 10 seconds, and send an email."
+9:33:10,14,0,,
+9:33:22,23,-8,,
+9:33:34,22,-1,,Actual Behaviour:
+9:33:46,33,-50,,"Read and record every 12 seconds, and send an email."
+9:33:58,13,-36,,
+9:34:10,24,-20,,
+9:34:22,18,-43,,Thoughts:
+9:34:34,13,-40,,The process of sending an email on my machine takes approximately 2 seconds. 
+9:34:46,37,-40,,"This will delay all sensor readings, which defeats the purpose of ""live data""."
+9:34:58,14,-19,,
+9:35:10,23,-12,,
+,,,,Solution:
+,,,,Parallel computing.
