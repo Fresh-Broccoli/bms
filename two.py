@@ -86,18 +86,30 @@ class TwoLiveData:
             writer.writerow([time, genY, genH])
 
         # Sends a mail to the email address if Melbourne temperature exceeds 30C.
+
         mail_thread = threading.Thread(target=self.mail_bot.conditional_send,
-                                       # args = ([genY]),
-                                       kwargs={"to":"fedexef285@zevars.com" ,
-                                               "subject":"Too hot!!!",
-                                               "message": "Wow! It's {}°C in Melbourne!",
-                                               "condition": lambda x: x[0] > 30,
-                                               "auto_parse":True,
+                                       args = ("fedexef285@zevars.com",
+                                               "Too hot!!!",
+                                               "Wow! It's {}°C in Melbourne!",
+                                               lambda x: x[0] > 30,
+                                               genY),
+                                       kwargs={"auto_parse":True,
                                                "attach_file": os.path.join("data", self.today+".csv")},
                                        daemon=True)
         #self.mail_bot.conditional_send("fedexef285@zevars.com", "Too hot!!!", "Wow! It's {}°C in Melbourne!",
         #                               lambda x: x[0] > 30, genY, auto_parse=True, attach_file = os.path.join("data", self.today+".csv"))
         mail_thread.start()
+
+
+        """
+        self.mail_bot.conditional_send("liset73655@zefara.com",
+                                       "Too hot!!!",
+                                       "Wow! It's {}°C in Melbourne!",
+                                       lambda x: x[0] > 30,
+                                       genY,
+                                       auto_parse=True,
+                                       attach_file=os.path.join("data", self.today+".csv"))
+        """
 
         self.t.append(time)
         self.y.append(genY)
@@ -130,11 +142,11 @@ class TwoLiveData:
         return animation.FuncAnimation(self.fig, self.animate, interval=interval)
 
 
+def send_parse_run(func, ):
+    pass
+
 if __name__ == "__main__":
     producer = TwoLiveData()
     ani = producer.animator()
     plt.show()
-# ani = animation.FuncAnimation(fig, animate, interval=1000)
-# animate(1)
 
-# plt.show()

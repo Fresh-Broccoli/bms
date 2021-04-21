@@ -52,12 +52,12 @@ class BioreactorGmailBot:
         if attach_file:
             msg.attach(self.mime_attachment(attach_file))
 
-        try:
-            self.server.sendmail(self.sender_account_info[0], to, msg.as_string().encode('utf-8'))
-            print(f"Email sent to {to} successfully!")
-        except:
-            #print(e)
-            print(f"Failed to send email to {to}...")
+        #try:
+        self.server.sendmail(self.sender_account_info[0], to, msg.as_string().encode('utf-8'))
+        print(f"Email sent to {to} successfully!")
+        #except Exception as e:
+        #    print(e)
+            #print(f"Failed to send email to {to}...")
 
     def send_to_all(self, subject="", message="", auto_heading=False, attach_file=None):
         """ Sends an email all email addresses within self.stakeholders.
@@ -126,7 +126,7 @@ class BioreactorGmailBot:
 
     def mime_attachment(self, file):
         """ Prepares attachment for the email.
-        Currently only works for text-based files and images.
+        Currently only works for text-based files.
         Parameters
         ----------
         file (String): the directory of the file that we want to send via e-mail.
@@ -135,16 +135,22 @@ class BioreactorGmailBot:
         ------
         MIMEText, MIMEImage, or MIMEBase
         """
+        # For now, it can only read text-based files.
+        with open(file) as f:
+            attachment = MIMEText(f.read())
+            attachment.add_header("Content-Disposition", "attachment", filename=file[5:])
+        return attachment
+        """
         # Copied from:
         # https://stackoverflow.com/questions/23171140/how-do-i-send-an-email-with-a-csv-attachment-using-python
         attachment = None
         ctype, encoding = mimetypes.guess_type(file)
-        # print("ctype: ", ctype, "\nencoding: ", encoding)
+        print("ctype: ", ctype, "\nencoding: ", encoding)
         if ctype is None or encoding is not None:
             ctype = "application/octet-stream"
 
         maintype, subtype = ctype.split("/", 1)
-        # print("Maintype: " + maintype)
+        print("Maintype: " + maintype)
         if maintype == "text":
             with open(file) as fp:
                 attachment = MIMEText(fp.read(), _subtype=subtype)
@@ -161,7 +167,7 @@ class BioreactorGmailBot:
 
         attachment.add_header("Content-Disposition", "attachment", filename=file[5:])
         return attachment
-
+        """
     def add_stakeholder(self, name, email):
         """ Adds a stakeholder to the system so they'll receive e-mail notifications.
 
