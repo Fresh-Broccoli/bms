@@ -26,10 +26,10 @@ class Application(tk.Tk):
         self.attributes("-fullscreen", True)
         self.fullScreenState = False
 
-        self.bind("<F11>", self.toggleFullScreen)
-        self.bind("<Escape>", self.quitFullScreen)
+        #self.bind("<F11>", self.toggleFullScreen)
+        #self.bind("<Escape>", self.quitFullScreen)
 
-        # tk.Tk.iconbitmap(self, default="leaf.ico")
+        # tk.Tk.iconbitmap(self, default="leaf.ico") # Activating this crashes the Pi version.
         tk.Tk.wm_title(self, "Bioreactor Monitoring System")
 
 

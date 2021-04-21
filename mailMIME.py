@@ -1,10 +1,7 @@
 import smtplib
-import mimetypes
-from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.base import MIMEBase
+
 from collections import defaultdict
 
 
@@ -52,12 +49,11 @@ class BioreactorGmailBot:
         if attach_file:
             msg.attach(self.mime_attachment(attach_file))
 
-        #try:
-        self.server.sendmail(self.sender_account_info[0], to, msg.as_string().encode('utf-8'))
-        print(f"Email sent to {to} successfully!")
-        #except Exception as e:
-        #    print(e)
-            #print(f"Failed to send email to {to}...")
+        try:
+            self.server.sendmail(self.sender_account_info[0], to, msg.as_string().encode('utf-8'))
+            print(f"Email sent to {to} successfully!")
+        except:
+            print(f"Failed to send email to {to}...")
 
     def send_to_all(self, subject="", message="", auto_heading=False, attach_file=None):
         """ Sends an email all email addresses within self.stakeholders.
@@ -102,7 +98,8 @@ class BioreactorGmailBot:
 
     def conditional_send_to_all(self, subject, message, condition, *args, auto_heading=False, auto_parse=False,
                                 attach_file=None):
-        """ Sends an email all email addresses within self.stakeholders only if the condition is fulfilled.
+        """ Sends an email all email addresses within self.stakeholders only if the condition is fulfilled and the
+            locally stored list of stakeholders is not empty.
         Also supports sending variable values via string parsing (look into auto_parse).
 
         Parameters
@@ -116,13 +113,16 @@ class BioreactorGmailBot:
         auto_parse (Bool, optional): If True, contents of *args will be used to parse {} of message.
         attach_file (String , optional): the directory of the file we're interested in sending (absolute/relative).
         """
-        message = self.parse_message(message, *args) if auto_parse else message
-        if callable(condition):
-            self.conditional_send_to_all(subject, message, condition(args), auto_heading=auto_heading,
-                                         auto_parse=auto_parse, attach_file=attach_file)
+        if len(self.stakeholders) > 0:
+            message = self.parse_message(message, *args) if auto_parse else message
+            if callable(condition):
+                self.conditional_send_to_all(subject, message, condition(args), auto_heading=auto_heading,
+                                             auto_parse=auto_parse, attach_file=attach_file)
+            else:
+                if condition:
+                    self.send_to_all(subject, message, auto_heading, attach_file=attach_file)
         else:
-            if condition:
-                self.send_to_all(subject, message, auto_heading, attach_file=attach_file)
+            print("You don't have any stakeholders to direct this email to!")
 
     def mime_attachment(self, file):
         """ Prepares attachment for the email.
@@ -133,7 +133,7 @@ class BioreactorGmailBot:
 
         Returns
         ------
-        MIMEText, MIMEImage, or MIMEBase
+        MIMEText
         """
         # For now, it can only read text-based files.
         with open(file) as f:
@@ -168,6 +168,7 @@ class BioreactorGmailBot:
         attachment.add_header("Content-Disposition", "attachment", filename=file[5:])
         return attachment
         """
+
     def add_stakeholder(self, name, email):
         """ Adds a stakeholder to the system so they'll receive e-mail notifications.
 

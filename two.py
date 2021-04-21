@@ -75,7 +75,6 @@ class TwoLiveData:
             if new_day:
                 # Remove the oldest file:
                 # Taken from: https://stackoverflow.com/questions/47739262/find-remove-oldest-file-in-directory
-
                 list_of_files = os.listdir('data')
                 if len(list_of_files) >= self.max_life:
                     oldest_file = min(list_of_files, key=os.path.getctime)
@@ -86,9 +85,12 @@ class TwoLiveData:
             writer.writerow([time, genY, genH])
 
         # Sends a mail to the email address if Melbourne temperature exceeds 30C.
-
+        """ Sending an email with threading
+        # Delay times are inconsistent, but are quite short. 
+        # Also requires a multi-core machine to run.
+        
         mail_thread = threading.Thread(target=self.mail_bot.conditional_send,
-                                       args = ("fedexef285@zevars.com",
+                                       args = ("liset73655@zefara.com",
                                                "Too hot!!!",
                                                "Wow! It's {}°C in Melbourne!",
                                                lambda x: x[0] > 30,
@@ -96,12 +98,13 @@ class TwoLiveData:
                                        kwargs={"auto_parse":True,
                                                "attach_file": os.path.join("data", self.today+".csv")},
                                        daemon=True)
-        #self.mail_bot.conditional_send("fedexef285@zevars.com", "Too hot!!!", "Wow! It's {}°C in Melbourne!",
-        #                               lambda x: x[0] > 30, genY, auto_parse=True, attach_file = os.path.join("data", self.today+".csv"))
+        
         mail_thread.start()
-
-
+        
         """
+        """ Sending an email without threading.
+        # Delay times are consistent, but are quite long.
+
         self.mail_bot.conditional_send("liset73655@zefara.com",
                                        "Too hot!!!",
                                        "Wow! It's {}°C in Melbourne!",
@@ -110,6 +113,18 @@ class TwoLiveData:
                                        auto_parse=True,
                                        attach_file=os.path.join("data", self.today+".csv"))
         """
+        # In practice:
+        mail_thread = threading.Thread(target=self.mail_bot.conditional_send_to_all,
+                                       args = ("Too hot!!!",
+                                               "Wow! It's {}°C in Melbourne!",
+                                               lambda x: x[0] > 30,
+                                               genY),
+                                       kwargs={"auto_heading":True,
+                                               "auto_parse":True,
+                                               "attach_file": os.path.join("data", self.today+".csv")},
+                                       daemon=True)
+
+        mail_thread.start()
 
         self.t.append(time)
         self.y.append(genY)
