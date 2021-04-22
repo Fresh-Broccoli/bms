@@ -9,14 +9,13 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from two import TwoLiveData
 from tkinter import ttk
+from tkinter import messagebox
 import tkinter as tk
-
-
-
 
 LARGE_FONT = ("Verdana", 12)
 
 dataGen = TwoLiveData()
+
 
 class Application(tk.Tk):
 
@@ -26,12 +25,11 @@ class Application(tk.Tk):
         self.attributes("-fullscreen", True)
         self.fullScreenState = False
 
-        #self.bind("<F11>", self.toggleFullScreen)
-        #self.bind("<Escape>", self.quitFullScreen)
+        # self.bind("<F11>", self.toggleFullScreen)
+        # self.bind("<Escape>", self.quitFullScreen)
 
         # tk.Tk.iconbitmap(self, default="leaf.ico") # Activating this crashes the Pi version.
         tk.Tk.wm_title(self, "Bioreactor Monitoring System")
-
 
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -40,22 +38,18 @@ class Application(tk.Tk):
 
         self.frames = {}
 
-        for F in (StartPage, PageOne):
+        for F in (Home, BioreactorSettings):
             frame = F(container, self)
 
             self.frames[F] = frame
 
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(StartPage)
-
-
-
+        self.show_frame(Home)
 
     def toggleFullScreen(self, event):
         self.fullScreenState = not self.fullScreenState
         self.attributes("-fullscreen", self.fullScreenState)
-
 
     def quitFullScreen(self, event):
         self.fullScreenState = False
@@ -66,7 +60,7 @@ class Application(tk.Tk):
         frame.tkraise()
 
 
-class StartPage(tk.Frame):
+class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -81,19 +75,23 @@ class StartPage(tk.Frame):
 
         toolbar = NavigationToolbar2Tk(canvas, self)
         toolbar.update()
-        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        button = ttk.Button(self, text="Controls",
-                            command=lambda: controller.show_frame(PageOne))
+        button = tk.Button(self, text="Bioreactor Settings",
+                           command=lambda: controller.show_frame(BioreactorSettings))
         button.pack()
 
-        button2 = ttk.Button(self, text="Quit",
-                             command=controller.quit)
+        button2 = tk.Button(self, text="Quit",
+                            fg="white",
+                            bg="red",
+                            command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
+
+        # button2 = ttk.Button(text="Quit",
+        #                    command=controller.quit)
         button2.pack()
 
 
-
-class PageOne(tk.Frame):
+class BioreactorSettings(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -101,15 +99,24 @@ class PageOne(tk.Frame):
         label.pack(pady=10, padx=10)
 
         button1 = ttk.Button(self, text="Back to Home",
-                             command=lambda: controller.show_frame(StartPage))
+                             command=lambda: controller.show_frame(Home))
         button1.pack()
 
-        button2 = ttk.Button(self, text="Quit",
-                             command=controller.quit)
+        button2 = tk.Button(self, text="Quit",
+                            fg="white",
+                            bg="red",
+                            command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
         button2.pack()
 
 
-app = Application()
+def confirm_box(func, message, *args):
+    choice = messagebox.askyesno("Confirmation", message=message)
+    if choice:
+        func(*args)
+    return
 
-ani = dataGen.animator(10000)
-app.mainloop()
+
+if __name__ == "__main__":
+    app = Application()
+    ani = dataGen.animator(10000)
+    app.mainloop()
