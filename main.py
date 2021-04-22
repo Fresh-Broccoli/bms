@@ -78,20 +78,78 @@ class Home(tk.Frame):
         canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         button = tk.Button(self, text="Bioreactor Settings",
+                           fg="white",
+                           bg="black",
                            command=lambda: controller.show_frame(BioreactorSettings))
         button.pack()
+        button.place(rely=.98, relx=.84, anchor=tk.SE, height=80, width=120)
+
+        button1 = tk.Button(self, text="Quit",
+                            fg="white",
+                            bg="red",
+                            command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
+        button1.pack()
+
+        button2 = tk.Button(self, text="Stakeholder Settings",
+                            fg="white",
+                            bg="black",
+                            command=lambda: controller.show_frame(BioreactorSettings))
+        button2.pack()
+        button2.place(rely=.98, relx=.92, anchor=tk.SE, height=80, width=120)
+
+        tubes = self.tube_button_maker()
+
+    def tube_button_maker(self, buttons = 6):
+        out = []
+        relx = 0.03
+        rely = 0.92
+        for i in range(buttons):
+            out.append(tk.Button(self, text=f"Tube {i+1}",
+                                 fg="white",
+                                 bg="green",
+                                 ))
+            out[-1].pack()
+            out[-1].place(rely=rely, relx = relx, anchor=tk.SW, height = 30, width=60)
+            relx += 0.04
+        return out
+
+class BioreactorSettings(tk.Frame):
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Page One!!!", font=LARGE_FONT)
+        label.pack(pady=10, padx=10)
+
+        button1 = ttk.Button(self, text="Back to Home",
+                             command=lambda: controller.show_frame(Home))
+        button1.pack()
 
         button2 = tk.Button(self, text="Quit",
                             fg="white",
                             bg="red",
                             command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
-
-        # button2 = ttk.Button(text="Quit",
-        #                    command=controller.quit)
         button2.pack()
 
 
-class BioreactorSettings(tk.Frame):
+class StakeholderSettings(tk.Frame):
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Page One!!!", font=LARGE_FONT)
+        label.pack(pady=10, padx=10)
+
+        button1 = ttk.Button(self, text="Back to Home",
+                             command=lambda: controller.show_frame(Home))
+        button1.pack()
+
+        button2 = tk.Button(self, text="Quit",
+                            fg="white",
+                            bg="red",
+                            command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
+        button2.pack()
+
+
+class TubeSettings(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)

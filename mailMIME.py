@@ -2,7 +2,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 
 class BioreactorGmailBot:
@@ -21,7 +21,8 @@ class BioreactorGmailBot:
         try:
             self.validate_gmail(email)
             self.sender_account_info = (email, password)
-            self.stakeholders = defaultdict(lambda: "Value not found")
+            self.stakeholders = OrderedDict()
+            #self.stakeholders = defaultdict(lambda: "Value not found")
             self.server = smtplib.SMTP("smtp.gmail.com", 587)
             # For Outlook: smtplib.SMTP('smtp.office365.com', 587)
             self.server.starttls()
