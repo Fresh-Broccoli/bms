@@ -99,19 +99,20 @@ class Home(tk.Frame):
 
         tubes = self.tube_button_maker()
 
-    def tube_button_maker(self, buttons = 6):
+    def tube_button_maker(self, buttons=6):
         out = []
         relx = 0.03
         rely = 0.92
         for i in range(buttons):
-            out.append(tk.Button(self, text=f"Tube {i+1}",
+            out.append(tk.Button(self, text=f"Tube {i + 1}",
                                  fg="white",
                                  bg="green",
                                  ))
             out[-1].pack()
-            out[-1].place(rely=rely, relx = relx, anchor=tk.SW, height = 30, width=60)
+            out[-1].place(rely=rely, relx=relx, anchor=tk.SW, height=30, width=60)
             relx += 0.04
         return out
+
 
 class BioreactorSettings(tk.Frame):
 
@@ -171,7 +172,7 @@ def confirm_box(func, message, *args):
     choice = messagebox.askyesno("Confirmation", message=message)
     if choice:
         func(*args)
-    return
+
 
 
 if __name__ == "__main__":
