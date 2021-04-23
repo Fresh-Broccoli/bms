@@ -44,7 +44,7 @@ class TwoLiveData:
         ------
         A list of values (Strings) that will be stored as a row in the final .csv file.
         """
-        return [datetime.now().strftime("%H:%M:%S"), random.randint(0, 50), random.randint(0, 50) * (-1)]
+        return [datetime.now().strftime("%H:%M:%S"), random.randint(6,9), random.randint(20, 40)]
 
     def animate(self, i):
         """ Called once every frame to update graph by creating a new one, creating the illusion of live-data.
@@ -58,8 +58,8 @@ class TwoLiveData:
         # print("Antarctic Temp: ", self.h)
 
         # Actual sensor input here
-        genY = random.randint(0, 50)
-        genH = random.randint(0, 50) * (-1)
+        genY = random.randint(6, 9)
+        genH = random.randint(20, 40)
         time = datetime.now().strftime("%H:%M:%S")
 
         directory = os.path.join("data", self.today + ".csv")
@@ -80,7 +80,7 @@ class TwoLiveData:
                     oldest_file = min(list_of_files, key=os.path.getctime)
                     os.remove(os.path.abspath(oldest_file))
 
-                writer.writerow(["Time", "Melbourne Temp", "Antarctic Temp"])
+                writer.writerow(["Time", "Average pH", "Average Temperature °C"])
                 self.today = also_today
             writer.writerow([time, genY, genH])
 
@@ -133,15 +133,15 @@ class TwoLiveData:
         self.ax[0].clear()
 
         self.ax[0].plot(self.t, self.y)
-        self.ax[0].set_title('Melbourne Temperature')
+        self.ax[0].set_title('Average pH')
 
         self.ax[1].clear()
 
         self.ax[1].plot(self.t, self.h, c="green")
-        self.ax[1].set_title('Antarctica Temperature')
+        self.ax[1].set_title('Average Temperature °C')
 
-        for a in self.ax.flat:
-            a.set(xlabel='Time', ylabel='°C')
+        self.ax[0].set(xlabel="Time", ylabel="pH")
+        self.ax[1].set(xlabel="Time", ylabel="°C")
 
     def animator(self, interval=1000):
         """ Called to animate the live graph. It just has to exist somewhere in run-time as a variable.
