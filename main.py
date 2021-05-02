@@ -404,7 +404,7 @@ class StakeholderSettings(tk.Frame):
                                 bottom,
                                 text="Delete Stakeholder",
                                 font=("bold",20),
-                                command=table.delete_data_master
+                                command=table.delete_data
                              )
 
         delete.grid(row=0,
