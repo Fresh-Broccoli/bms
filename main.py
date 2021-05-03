@@ -12,7 +12,6 @@ from treeUI import StakeholderManager
 from tkinter import messagebox
 import tkinter as tk
 
-
 LARGE_FONT = ("Verdana", 12)
 LARGE_FONT_BOLD = LARGE_FONT[0] + " bold", 12
 dataGen = TwoLiveData()
@@ -65,9 +64,77 @@ class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Welcome Back Captain!", font=LARGE_FONT_BOLD)
-        label.pack(pady=10, padx=10)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=7)
+        self.rowconfigure(2, weight=1)
+        self.columnconfigure(0, weight=1)
 
+        top = tk.Frame(self, )
+        mid = tk.Frame(self, )
+        bottom = tk.Frame(self, )
+
+        top.rowconfigure(0, weight=1)
+        top.rowconfigure(1, weight=3)
+        top.rowconfigure(2, weight=3)
+        top.columnconfigure(0, weight=1)
+        top.columnconfigure(1, weight=8)
+        top.columnconfigure(2, weight=1)
+
+        for i in range(5):
+            bottom.rowconfigure(i, weight=1)
+        for i in range(16):
+            bottom.columnconfigure(i, weight=1)
+
+        top.grid(row=0, column=0, sticky="news")
+        mid.grid(row=1, column=0, sticky="news")
+        bottom.grid(row=2, column=0, sticky="news")
+
+        title = tk.Label(top, text="Welcome Back Captain!", font=LARGE_FONT_BOLD)
+        title.grid(row=0, column=1, sticky="news")
+
+        quit_button = UserInteractor("Quit",
+                                     tk.Button,
+                                     top,
+                                     text="Quit",
+                                     fg="white",
+                                     bg="red",
+                                     command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?")
+                                     )
+        quit_button.grid(row=0, column=2, sticky="ne")
+
+        bio_button = UserInteractor("Bioreactor Settings",
+                                    tk.Button,
+                                    bottom,
+                                    text="Bioreactor Settings",
+                                    fg="white",
+                                    bg="black",
+                                    command=lambda: controller.show_frame(BioreactorSettings)
+                                    )
+        bio_button.grid(row=1, column=12, rowspan=3, columnspan=1, sticky="news")
+
+        stake_button = UserInteractor("Stakeholder Settings",
+                                      tk.Button,
+                                      bottom,
+                                      text="Stakeholder Settings",
+                                      fg="white",
+                                      bg="black",
+                                      command=lambda: controller.show_frame(StakeholderSettings)
+                                      )
+        stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
+
+        tubes = self.tube_button_maker(bottom)
+
+        f = dataGen.fig
+
+        canvas = FigureCanvasTkAgg(f, mid)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+        toolbar = NavigationToolbar2Tk(canvas, mid)
+        toolbar.update()
+        canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        """
         f = dataGen.fig
 
         canvas = FigureCanvasTkAgg(f, self)
@@ -77,65 +144,11 @@ class Home(tk.Frame):
         toolbar = NavigationToolbar2Tk(canvas, self)
         toolbar.update()
         canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        button = UserInteractor("Bioreactor Settings",
-                                tk.Button,
-                                self,
-                                text="Bioreactor Settings",
-                                fg="white",
-                                bg="black",
-                                command=lambda: controller.show_frame(BioreactorSettings)
-                                )
         """
-        button = tk.Button(self, text="Bioreactor Settings",
-                           fg="white",
-                           bg="black",
-                           command=lambda: controller.show_frame(BioreactorSettings))
-        """
-        button.pack()
-        button.place(rely=.985, relx=.84, anchor=tk.SE, height=80, width=120)
-
-        quit_button = UserInteractor("Quit",
-                                     tk.Button,
-                                     self,
-                                     text="Quit",
-                                     fg="white",
-                                     bg="red",
-                                     command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?")
-                                     )
-        """
-        button1 = tk.Button(self, text="Quit",
-                            fg="white",
-                            bg="red",
-                            command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
-        """
-        quit_button.pack()
-        quit_button.place(rely=0, relx=1, anchor=tk.NE)
-
-        button2 = UserInteractor("Stakeholder Settings",
-                                 tk.Button,
-                                 self,
-                                 text="Stakeholder Settings",
-                                 fg="white",
-                                 bg="black",
-                                 command=lambda: controller.show_frame(StakeholderSettings)
-                                 )
-        """
-        button2 = tk.Button(self, text="Stakeholder Settings",
-                            fg="white",
-                            bg="black",
-                            command=lambda: controller.show_frame(BioreactorSettings))
-        """
-
-        button2.pack()
-        button2.place(rely=.985, relx=.92, anchor=tk.SE, height=80, width=120)
-
-        tubes = self.tube_button_maker(self)
 
     def tube_button_maker(self, parent, buttons=6):
         out = []
-        relx = 0.03
-        rely = 0.941
+
         for i in range(buttons):
             out.append(
                 UserInteractor(str(i),
@@ -146,9 +159,8 @@ class Home(tk.Frame):
                                bg="green")
             )
 
-            out[-1].pack()
-            out[-1].place(rely=rely, relx=relx, anchor=tk.SW, height=30, width=60)
-            relx += 0.04
+            out[-1].grid(row=2, column=i, sticky="ns")
+
         return out
 
 
@@ -389,7 +401,7 @@ class StakeholderSettings(tk.Frame):
                              tk.Button,
                              bottom,
                              text="Add Stakeholder",
-                             font=("bold",20)
+                             font=("bold", 20)
                              )
 
         add.grid(row=0,
@@ -403,32 +415,32 @@ class StakeholderSettings(tk.Frame):
                                 tk.Button,
                                 bottom,
                                 text="Delete Stakeholder",
-                                font=("bold",20),
+                                font=("bold", 20),
                                 command=table.delete_data
-                             )
+                                )
 
         delete.grid(row=0,
-                 column=1,
-                 sticky="news",
-                 padx=15,
-                 pady=15
-                 )
+                    column=1,
+                    sticky="news",
+                    padx=15,
+                    pady=15
+                    )
 
         clear = UserInteractor("clear",
                                tk.Button,
                                bottom,
                                text="Clear Stakeholders",
-                               font=("bold",20),
+                               font=("bold", 20),
                                command=table.clear_data
 
-                                )
+                               )
 
         clear.grid(row=0,
-                    column=2,
-                    sticky="news",
-                    padx=15,
-                    pady=15
-                    )
+                   column=2,
+                   sticky="news",
+                   padx=15,
+                   pady=15
+                   )
 
 
 class TubeSettings(tk.Frame):
@@ -439,7 +451,7 @@ class TubeSettings(tk.Frame):
         label.pack(pady=10, padx=10)
 
         home_button = tk.Button(self, text="Back to Home",
-                                 command=lambda: controller.show_frame(Home))
+                                command=lambda: controller.show_frame(Home))
         home_button.pack()
 
         quit_button = tk.Button(self, text="Quit",
