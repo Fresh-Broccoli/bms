@@ -65,8 +65,10 @@ class Home(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=7)
-        self.rowconfigure(2, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=5)
+        self.rowconfigure(3, weight=1)
+        self.rowconfigure(4, weight=1)
         self.columnconfigure(0, weight=1)
 
         top = tk.Frame(self, )
@@ -86,8 +88,8 @@ class Home(tk.Frame):
             bottom.columnconfigure(i, weight=1)
 
         top.grid(row=0, column=0, sticky="news")
-        mid.grid(row=1, column=0, sticky="news")
-        bottom.grid(row=2, column=0, sticky="news")
+        mid.grid(row=2, column=0, sticky="news")
+        bottom.grid(row=4, column=0, sticky="news")
 
         title = tk.Label(top, text="Welcome Back Captain!", font=LARGE_FONT_BOLD)
         title.grid(row=0, column=1, sticky="news")
@@ -125,14 +127,9 @@ class Home(tk.Frame):
         tubes = self.tube_button_maker(bottom)
 
         f = dataGen.fig
-
         canvas = FigureCanvasTkAgg(f, mid)
         canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2Tk(canvas, mid)
-        toolbar.update()
-        canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        canvas.get_tk_widget().pack(fill=tk.BOTH,expand=True)
 
         """
         f = dataGen.fig

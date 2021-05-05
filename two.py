@@ -23,12 +23,13 @@ class TwoLiveData:
             be deleted from the system.
         """
         self.fig, self.ax = plt.subplots(2)
-        plt.tight_layout(pad=1.08, h_pad=1.5)
+        #plt.tight_layout(pad=1.08, h_pad=1.5)
         self.today = datetime.today().strftime("%d/%m/%Y")
         self.y = deque([], interval)
         self.h = deque([], interval)
         self.t = deque([], interval)
-        self.mail_bot = BioreactorGmailBot("bioreactor.bot@gmail.com", "75q3@*NyiVDKmr_k")
+        self.other_y, self.other_h = [deque([], interval) for _ in range(5)], [deque([], interval) for _ in range(5)]
+        #self.mail_bot = BioreactorGmailBot("bioreactor.bot@gmail.com", "75q3@*NyiVDKmr_k")
         self.max_life = max_life
 
         # Clear everything in data.
@@ -60,6 +61,8 @@ class TwoLiveData:
         # Actual sensor input here
         genY = random.randint(6, 9)
         genH = random.randint(20, 40)
+
+        other_data = [self.gen_data() for _ in range(5)]
         time = datetime.now().strftime("%H:%M:%S")
 
         directory = os.path.join("data", self.today + ".csv")
@@ -112,7 +115,7 @@ class TwoLiveData:
                                        genY,
                                        auto_parse=True,
                                        attach_file=os.path.join("data", self.today+".csv"))
-        """
+        
         # In practice:
         mail_thread = threading.Thread(target=self.mail_bot.conditional_send_to_all,
                                        args = ("Too hot!!!",
@@ -125,23 +128,33 @@ class TwoLiveData:
                                        daemon=True)
 
         mail_thread.start()
-
+	"""
         self.t.append(time)
         self.y.append(genY)
         self.h.append(genH)
 
-        self.ax[0].clear()
+        for i in range(5):
+            self.other_y[i].append(other_data[i][1])
+            self.other_h[i].append(other_data[i][2])
 
-        self.ax[0].plot(self.t, self.y)
-        self.ax[0].set_title('Average pH')
+        for axe in self.ax:
+            axe.clear()
 
-        self.ax[1].clear()
+        self.ax[0].plot(self.t, self.y, label="Tube 1")
+        self.ax[1].plot(self.t, self.h, label="Tube 1")
 
-        self.ax[1].plot(self.t, self.h, c="green")
-        self.ax[1].set_title('Average Temperature °C')
+        for i in range(5):
+            self.ax[0].plot(self.t, self.other_y[i], label=f"Tube {i+2}")
+            self.ax[1].plot(self.t, self.other_h[i], label=f"Tube {i+2}")
 
-        self.ax[0].set(xlabel="Time", ylabel="pH")
+        self.ax[0].set(ylabel="pH")
         self.ax[1].set(xlabel="Time", ylabel="°C")
+
+        plt.setp(self.ax[0].get_xticklabels(), visible=False)
+        
+        #for x in self.ax:
+        self.ax[0].legend(title="pH", loc="upper left")
+        self.ax[1].legend(title="Temperature", loc="upper left")
 
     def animator(self, interval=1000):
         """ Called to animate the live graph. It just has to exist somewhere in run-time as a variable.
