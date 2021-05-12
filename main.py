@@ -10,6 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from two import TwoLiveData
 from treeUI import StakeholderManager
 from tkinter import messagebox
+from popup import PopupTwoFields
 import tkinter as tk
 
 LARGE_FONT = ("Verdana", 12)
@@ -389,16 +390,14 @@ class StakeholderSettings(tk.Frame):
 
         stakeholders = open("stakeholders.csv", "r")
         table = StakeholderManager(mid, stakeholders.readline().split(","))
-        for stakeholder in stakeholders:
-            name, email = stakeholder.split(",")
-            table.insert_data(name, email)
-        stakeholders.close()
+        table.insert_data_from_csv()
 
         add = UserInteractor("add",
                              tk.Button,
                              bottom,
                              text="Add Stakeholder",
-                             font=("bold", 20)
+                             font=("bold", 20),
+                             command=table.insert_data
                              )
 
         add.grid(row=0,

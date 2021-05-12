@@ -8,6 +8,7 @@ import tkinter.ttk as ttk
 class StakeholderManager(tk.Frame):
     def __init__(self, root, colnames):
         tk.Frame.__init__(self, root)
+        self.received_data = None
         self.id = 0
         self.iid = 0
         self.root = root
@@ -35,12 +36,28 @@ class StakeholderManager(tk.Frame):
         self.tree.grid(row=0, columnspan=1, sticky='nsew')
         self.treeview = self.tree
 
-    def insert_data(self, *data):
-        self.treeview.insert('', 'end', iid=self.iid, text=self.id,
-                             values=data)
-        self.iid = self.iid + 1
-        self.id = self.id + 1
+    def insert_data(self):
+        name = tk.simpledialog.askstring(title="Add Stakeholder",
+                                      prompt="Name:")
+        email = tk.simpledialog.askstring(title="Add Stakeholder",
+                                          prompt="Email:")
+        if len(name+email)>1:
+            self.treeview.insert('', 'end', iid=self.iid, text=self.id,
+                                 values=(name,email))
+            self.iid = self.iid + 1
+            self.id = self.id + 1
 
+
+    def insert_data_from_csv(self):
+        stakeholders = open("stakeholders.csv", "r")
+        stakeholders.readline() # Skip header
+        for stakeholder in stakeholders:
+            name, email = stakeholder.split(",")
+            self.treeview.insert('', 'end', iid=self.iid, text=self.id,
+                                 values=(name,email))
+            self.iid = self.iid + 1
+            self.id = self.id + 1
+        stakeholders.close()
 
     def delete_data(self):
         try:
@@ -49,10 +66,10 @@ class StakeholderManager(tk.Frame):
         except IndexError:
             print("Can't delete, no row selected.")
 
-
     def clear_data(self):
         for child in self.tree.get_children():
             self.tree.delete(child)
+
 
 if __name__ == "__main__":
     app = StakeholderManager(tk.Tk(), ["Name", "Email"])

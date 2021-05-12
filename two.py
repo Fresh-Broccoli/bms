@@ -140,6 +140,14 @@ class TwoLiveData:
         for axe in self.ax:
             axe.clear()
 
+        pH = [random.randint(6,9) for _ in range(6)]
+        temp = [random.randint(20,60) for _ in range(6)]
+
+        self.ax[0].bar([f"Tube {n}" for n in range(1,7)], pH, color="g")
+        self.ax[1].bar([f"Tube {n}" for n in range(1,7)], temp, color="g")
+
+        """
+        #Line graph
         self.ax[0].plot(self.t, self.y, label="Tube 1")
         self.ax[1].plot(self.t, self.h, label="Tube 1")
 
@@ -147,14 +155,16 @@ class TwoLiveData:
             self.ax[0].plot(self.t, self.other_y[i], label=f"Tube {i+2}")
             self.ax[1].plot(self.t, self.other_h[i], label=f"Tube {i+2}")
 
+        # End of Line graph
+        """
+
         self.ax[0].set(ylabel="pH")
         self.ax[1].set(xlabel="Time", ylabel="°C")
 
         plt.setp(self.ax[0].get_xticklabels(), visible=False)
-        
-        #for x in self.ax:
-        self.ax[0].legend(title="pH", loc="upper left")
-        self.ax[1].legend(title="Temperature", loc="upper left")
+
+        #self.ax[0].legend(title="pH", loc="upper left")
+        #self.ax[1].legend(title="Temperature", loc="upper left")
 
     def animator(self, interval=1000):
         """ Called to animate the live graph. It just has to exist somewhere in run-time as a variable.
