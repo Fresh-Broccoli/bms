@@ -7,10 +7,10 @@ import random
 import os
 import csv
 import threading
-
+import json
 
 class TwoLiveData:
-    def __init__(self, interval=8, max_life=28):
+    def __init__(self):
         """ Initiates the live data visualisation tool.
         This tool will create two live graphs stacked on top of another that will continuously update as long as there's
         a constant stream of input data.
@@ -18,19 +18,18 @@ class TwoLiveData:
 
         Parameters
         ----------
-        interval (Int, optional): Limits the number of data points that are on the graph at a particular frame.
-        max_life (Int, optional): Maximum lifespan of a saved .csv file in days. After this period, the .csv file will
-            be deleted from the system.
+
         """
         self.fig, self.ax = plt.subplots(2)
         #plt.tight_layout(pad=1.08, h_pad=1.5)
+        self.y = []
+        self.h = []
+        self.t = []
+        self.settings = self.load_settings()
+
         self.today = datetime.today().strftime("%d/%m/%Y")
-        self.y = deque([], interval)
-        self.h = deque([], interval)
-        self.t = deque([], interval)
-        self.other_y, self.other_h = [deque([], interval) for _ in range(5)], [deque([], interval) for _ in range(5)]
+
         #self.mail_bot = BioreactorGmailBot("bioreactor.bot@gmail.com", "75q3@*NyiVDKmr_k")
-        self.max_life = max_life
 
         # Clear everything in data.
         for i in os.listdir("data"):
@@ -79,7 +78,7 @@ class TwoLiveData:
                 # Remove the oldest file:
                 # Taken from: https://stackoverflow.com/questions/47739262/find-remove-oldest-file-in-directory
                 list_of_files = os.listdir('data')
-                if len(list_of_files) >= self.max_life:
+                if len(list_of_files) >= self.settings["data_lifespan"]:
                     oldest_file = min(list_of_files, key=os.path.getctime)
                     os.remove(os.path.abspath(oldest_file))
 
@@ -140,13 +139,17 @@ class TwoLiveData:
         for axe in self.ax:
             axe.clear()
 
+
+        """
+        # Bar Graph
         pH = [random.randint(6,9) for _ in range(6)]
         temp = [random.randint(20,60) for _ in range(6)]
 
         self.ax[0].bar([f"Tube {n}" for n in range(1,7)], pH, color="g")
         self.ax[1].bar([f"Tube {n}" for n in range(1,7)], temp, color="g")
-
+        # End of Bar graph.
         """
+
         #Line graph
         self.ax[0].plot(self.t, self.y, label="Tube 1")
         self.ax[1].plot(self.t, self.h, label="Tube 1")
@@ -154,17 +157,17 @@ class TwoLiveData:
         for i in range(5):
             self.ax[0].plot(self.t, self.other_y[i], label=f"Tube {i+2}")
             self.ax[1].plot(self.t, self.other_h[i], label=f"Tube {i+2}")
-
+        self.ax[0].legend(title="pH", loc="upper left")
+        self.ax[1].legend(title="Temperature", loc="upper left")
         # End of Line graph
-        """
+
 
         self.ax[0].set(ylabel="pH")
         self.ax[1].set(xlabel="Time", ylabel="°C")
 
         plt.setp(self.ax[0].get_xticklabels(), visible=False)
 
-        #self.ax[0].legend(title="pH", loc="upper left")
-        #self.ax[1].legend(title="Temperature", loc="upper left")
+
 
     def animator(self, interval=1000):
         """ Called to animate the live graph. It just has to exist somewhere in run-time as a variable.
@@ -177,11 +180,29 @@ class TwoLiveData:
         ------
         FuncAnimation
         """
-        return animation.FuncAnimation(self.fig, self.animate, interval=interval)
+        return animation.FuncAnimation(self.fig, self.animate, interval=self.settings["read_interval"])
 
+    def load_settings(self):
+        settings_path = os.path.join("settings","global_data_settings.json")
+        if os.path.isfile(settings_path): # Checks and sees if there's a pre-existing settings file.
+            with open(settings_path) as f: # If so, load its content as its settings
+                settings = json.load(f)
+        else: # Otherwise, load default settings and create a copy of it for future customisation.
+            with open(os.path.join("settings", "global_data_settings_default.json")) as f:
+                settings = json.load(f)
+            with open(settings_path, "w+") as f:
+                json.dump(settings, f, indent=4)
 
-def send_parse_run(func, ):
-    pass
+        # These are temporary randomly generated data points. They will be replaced by actual data points soon.
+        self.y = deque(self.y, settings["data_points"])
+        self.h = deque(self.h, settings["data_points"])
+        self.t = deque(self.t, settings["data_points"])
+        self.other_y, self.other_h = [deque([], settings["data_points"]) for _ in range(5)], [deque([],
+                                                                                                         settings["data_points"]) for _ in range(5)]
+        return settings
+
+    def update_settings(self):
+        pass
 
 if __name__ == "__main__":
     producer = TwoLiveData()

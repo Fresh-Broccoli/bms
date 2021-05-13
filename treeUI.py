@@ -41,7 +41,7 @@ class StakeholderManager(tk.Frame):
                                       prompt="Name:")
         email = tk.simpledialog.askstring(title="Add Stakeholder",
                                           prompt="Email:")
-        if len(name+email)>1:
+        if len(name) > 0 and len(email) > 0:
             self.treeview.insert('', 'end', iid=self.iid, text=self.id,
                                  values=(name,email))
             self.iid = self.iid + 1

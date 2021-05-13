@@ -3,6 +3,7 @@
 # Fullscreen implementation: https://www.delftstack.com/howto/python-tkinter/how-to-create-full-screen-window-in-tkinter/
 
 import matplotlib
+import time
 
 matplotlib.use("TkAgg")
 
@@ -10,12 +11,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from two import TwoLiveData
 from treeUI import StakeholderManager
 from tkinter import messagebox
-from popup import PopupTwoFields
 import tkinter as tk
 
+
 LARGE_FONT = ("Verdana", 12)
+small_font = ("Verdana", 6)
 LARGE_FONT_BOLD = LARGE_FONT[0] + " bold", 12
-dataGen = TwoLiveData()
+#dataGen = TwoLiveData()
 
 
 class Application(tk.Tk):
@@ -28,6 +30,8 @@ class Application(tk.Tk):
 
         # self.bind("<F11>", self.toggleFullScreen)
         # self.bind("<Escape>", self.quitFullScreen)
+
+        self.live_data_manager = TwoLiveData()
 
         # tk.Tk.iconbitmap(self, default="leaf.ico") # Activating this crashes the Pi version.
         tk.Tk.wm_title(self, "Bioreactor Monitoring System")
@@ -65,12 +69,15 @@ class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=5)
         self.rowconfigure(3, weight=1)
         self.rowconfigure(4, weight=1)
         self.columnconfigure(0, weight=1)
+
+        self.now = time.strftime('%H:%M:%S')
 
         top = tk.Frame(self, )
         mid = tk.Frame(self, )
@@ -95,6 +102,15 @@ class Home(tk.Frame):
         title = tk.Label(top, text="Welcome Back Captain!", font=LARGE_FONT_BOLD)
         title.grid(row=0, column=1, sticky="news")
 
+        self.clock = tk.Label(top, text=self.now, font=LARGE_FONT)
+        self.clock.grid(row=0, column=0, sticky="news")
+
+        quit_button = tk.Button(top,
+                                text="Quit",
+                                fg="white",
+                                bg="red",
+                                command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
+        """
         quit_button = UserInteractor("Quit",
                                      tk.Button,
                                      top,
@@ -103,8 +119,15 @@ class Home(tk.Frame):
                                      bg="red",
                                      command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?")
                                      )
+        """
         quit_button.grid(row=0, column=2, sticky="ne")
 
+        bio_button = tk.Button(bottom,
+                               text="Bioreactor Settings",
+                               fg="white",
+                               bg="black",
+                               command=lambda: controller.show_frame(BioreactorSettings))
+        """
         bio_button = UserInteractor("Bioreactor Settings",
                                     tk.Button,
                                     bottom,
@@ -113,8 +136,17 @@ class Home(tk.Frame):
                                     bg="black",
                                     command=lambda: controller.show_frame(BioreactorSettings)
                                     )
+        """
+
         bio_button.grid(row=1, column=12, rowspan=3, columnspan=1, sticky="news")
 
+        stake_button = tk.Button(bottom,
+                                 text="Stakeholder Settings",
+                                 fg="white",
+                                 bg="black",
+                                 command=lambda: controller.show_frame(StakeholderSettings))
+
+        """
         stake_button = UserInteractor("Stakeholder Settings",
                                       tk.Button,
                                       bottom,
@@ -123,11 +155,13 @@ class Home(tk.Frame):
                                       bg="black",
                                       command=lambda: controller.show_frame(StakeholderSettings)
                                       )
+        """
+
         stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
 
         tubes = self.tube_button_maker(bottom)
 
-        f = dataGen.fig
+        f = controller.live_data_manager.fig
         canvas = FigureCanvasTkAgg(f, mid)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH,expand=True)
@@ -149,6 +183,7 @@ class Home(tk.Frame):
 
         for i in range(buttons):
             out.append(
+
                 UserInteractor(str(i),
                                tk.Button,
                                parent,
@@ -171,19 +206,21 @@ class BioreactorSettings(tk.Frame):
         self.columnconfigure(0, weight=1)
 
         top = tk.Frame(self,
-                       # bg="red"
+                       bg="red"
                        )
+        bottom = tk.Frame(self,
+                          bg="blue",
+                          )
+
         top.grid(row=0, column=0, sticky="nesw")
+        bottom.grid(row=1, column=0, sticky="nesw")
 
         for i in range(3):
             top.columnconfigure(i, weight=1)
+            bottom.columnconfigure(i, weight=1)
         for i in range(5):
             top.rowconfigure(i, weight=1)
-
-        bottom = tk.Frame(self,
-                          # bg="blue",
-                          )
-        bottom.grid(row=1, column=0, sticky="nesw")
+            bottom.rowconfigure(i, weight=1)
 
         label = tk.Label(top, text="Bioreactor Settings", font=LARGE_FONT_BOLD)
         label.grid(row=0,
@@ -192,6 +229,12 @@ class BioreactorSettings(tk.Frame):
                    padx=5,
                    pady=5)
 
+        home_button = tk.Button(top,
+                                text="Back to Home",
+                                fg="white",
+                                bg="green",
+                                command=lambda: controller.show_frame(Home))
+        """
         home_button = UserInteractor(
             "Home",
             tk.Button,
@@ -201,6 +244,7 @@ class BioreactorSettings(tk.Frame):
             bg="green",
             command=lambda: controller.show_frame(Home)
         )
+        """
 
         home_button.grid(row=0,
                          column=0,
@@ -208,6 +252,7 @@ class BioreactorSettings(tk.Frame):
                          padx=5,
                          pady=5)
 
+        """
         ph_label = tk.Label(top,
                             text="pH: ",
                             font=LARGE_FONT)
@@ -223,44 +268,19 @@ class BioreactorSettings(tk.Frame):
                                    resolution=0.01,
                                    orient=tk.HORIZONTAL
                                    )
-        """
-        ph_slider = tk.Scale(top,
-                             from_=4,
-                             to_=9,
-                             length=800,
-                             resolution=0.01,
-                             orient=tk.HORIZONTAL)
-        """
+
         ph_slider.grid(row=1,
                        column=1)
+        
+        """
 
-        temp_label = tk.Label(top,
-                              text="Temperature: ",
+        heater_label = tk.Label(top,
+                              text="Heater: ",
                               font=LARGE_FONT)
 
-        temp_label.grid(row=2,
+        heater_label.grid(row=2,
                         column=0)
 
-        temp_slider = UserInteractor(
-            "temperature",
-            tk.Scale,
-            top,
-            from_=20,
-            to_=90,
-            length=800,
-            orient=tk.HORIZONTAL
-        )
-
-        """
-        temp_slider = tk.Scale(top,
-                               from_=20,
-                               to_=90,
-                               length=800,
-                               orient=tk.HORIZONTAL)
-        """
-
-        temp_slider.grid(row=2,
-                         column=1)
 
         interval_label = tk.Label(top,
                                   text="Graph Interval: ",
@@ -331,8 +351,6 @@ class BioreactorSettings(tk.Frame):
                             text="Confirm",
                             command=lambda: confirm_box(get_parameters,
                                                         "Are you sure you want to make this change?",
-                                                        ph_slider,
-                                                        temp_slider,
                                                         interval_slider,
                                                         read_entry,
                                                         data_entry),
@@ -510,8 +528,18 @@ def get_parameters(*widgets):
 def print_output(func, *args):
     print(func(*args))
 
+# Time and tick are copied from:
+# https://www.daniweb.com/programming/software-development/code/216785/tkinter-digital-clock-python
+def tick(page, tick_rate=1000):
+    now = time.strftime("%H:%M:%S")
+    if page.now != now:
+        page.now = now
+        page.clock.config(text=now)
+    page.clock.after(tick_rate, lambda: tick(page, tick_rate))
+
 
 if __name__ == "__main__":
     app = Application()
-    ani = dataGen.animator(10000)
+    tick(app.frames[Home])
+    ani = app.live_data_manager.animator(1000)
     app.mainloop()
