@@ -1,6 +1,8 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+import re
 
+from file_messer import *
 
 # Taken from: https://www.askpython.com/python-modules/tkinter/tkinter-treeview-widget
 # Modified by Jay Zhong to work with the bioreactor monitoring system.
@@ -38,37 +40,58 @@ class StakeholderManager(tk.Frame):
 
     def insert_data(self):
         name = tk.simpledialog.askstring(title="Add Stakeholder",
-                                      prompt="Name:")
-        email = tk.simpledialog.askstring(title="Add Stakeholder",
-                                          prompt="Email:")
-        if len(name) > 0 and len(email) > 0:
-            self.treeview.insert('', 'end', iid=self.iid, text=self.id,
-                                 values=(name,email))
-            self.iid = self.iid + 1
-            self.id = self.id + 1
-
+                                         prompt="Name:")
+        if name:
+            email = tk.simpledialog.askstring(title="Add Stakeholder",
+                                              prompt="Email:")
+            if validate_email(email):
+                with open("stakeholders.csv", "a") as stakeholders:
+                    stakeholders.write(f"{name},{email}\n")
+                self.treeview.insert('', 'end', iid=self.iid, text=self.id,
+                                     values=(name, email))
+                self.iid = self.iid + 1
+                self.id = self.id + 1
+            else:
+                tk.messagebox.showinfo(title="Invalid Email", message="Please insert a proper email!")
+        else:
+            tk.messagebox.showinfo(title="Invalid Name", message="Please insert your name!")
 
     def insert_data_from_csv(self):
+        cleanse("stakeholders.csv")
         stakeholders = open("stakeholders.csv", "r")
-        stakeholders.readline() # Skip header
+        stakeholders.readline()  # Skip header
         for stakeholder in stakeholders:
             name, email = stakeholder.split(",")
             self.treeview.insert('', 'end', iid=self.iid, text=self.id,
-                                 values=(name,email))
+                                 values=(name, email))
             self.iid = self.iid + 1
             self.id = self.id + 1
         stakeholders.close()
 
-    def delete_data(self):
+    def delete_data(self, selection=None):
         try:
-            selected_item = self.tree.selection()[0] ## get selected item
+            if not selection:
+                selected_item = self.tree.selection()[0] # get selected item
+            else:
+                selected_item = selection
+            delete_line("stakeholders.csv", int(selected_item)+1)
+            """
+            with open("stakeholders.csv") as stakeholders:
+                stakeholders.
+            """
             self.tree.delete(selected_item)
         except IndexError:
-            print("Can't delete, no row selected.")
+            tk.messagebox.showinfo(title="No target", message="Can't delete, no row selected.")
 
     def clear_data(self):
+        with open("stakeholders.csv", "w+") as f:
+            f.write("Name,Email\n")
         for child in self.tree.get_children():
             self.tree.delete(child)
+
+def validate_email(email):
+    # Regex pattern taken from: https://www.geeksforgeeks.org/check-if-email-address-valid-or-not-in-python/
+    return re.match('^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$', email)
 
 
 if __name__ == "__main__":

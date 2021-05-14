@@ -10,7 +10,7 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from two import TwoLiveData
 from treeUI import StakeholderManager
-from tkinter import messagebox
+from popups import confirm_box
 import tkinter as tk
 
 
@@ -445,8 +445,7 @@ class StakeholderSettings(tk.Frame):
                                bottom,
                                text="Clear Stakeholders",
                                font=("bold", 20),
-                               command=table.clear_data
-
+                               command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
                                )
 
         clear.grid(row=0,
@@ -501,12 +500,6 @@ class UserInteractor:
         self.widget.grid(*args, **kwargs)
 
 
-def confirm_box(func, message, *args):
-    choice = messagebox.askyesno("Confirmation", message=message)
-    if choice:
-        func(*args)
-
-
 def get_parameters(*widgets):
     """ Gets values from inserted widgets
 
@@ -521,7 +514,6 @@ def get_parameters(*widgets):
 
     """
     out = dict([(widget.name, widget.get()) for widget in widgets])
-    print(out)
     return out  # This output should be passed onto another function that will take them and make changes appropriately.
 
 
