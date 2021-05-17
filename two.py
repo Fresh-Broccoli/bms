@@ -183,12 +183,12 @@ class TwoLiveData:
         return animation.FuncAnimation(self.fig, self.animate, interval=self.settings["read_interval"])
 
     def load_settings(self):
-        settings_path = os.path.join("settings","global_data_settings.json")
+        settings_path = os.path.join("assets", "settings","global_data_settings.json")
         if os.path.isfile(settings_path): # Checks and sees if there's a pre-existing settings file.
             with open(settings_path) as f: # If so, load its content as its settings
                 settings = json.load(f)
         else: # Otherwise, load default settings and create a copy of it for future customisation.
-            with open(os.path.join("settings", "global_data_settings_default.json")) as f:
+            with open(os.path.join("assets", "settings", "global_data_settings_default.json")) as f:
                 settings = json.load(f)
             with open(settings_path, "w+") as f:
                 json.dump(settings, f, indent=4)

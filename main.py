@@ -11,6 +11,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from two import TwoLiveData
 from treeUI import StakeholderManager
 from popups import confirm_box
+from onoff import OnOffButton
+from info_button import InfoButton
 import tkinter as tk
 
 
@@ -127,16 +129,6 @@ class Home(tk.Frame):
                                fg="white",
                                bg="black",
                                command=lambda: controller.show_frame(BioreactorSettings))
-        """
-        bio_button = UserInteractor("Bioreactor Settings",
-                                    tk.Button,
-                                    bottom,
-                                    text="Bioreactor Settings",
-                                    fg="white",
-                                    bg="black",
-                                    command=lambda: controller.show_frame(BioreactorSettings)
-                                    )
-        """
 
         bio_button.grid(row=1, column=12, rowspan=3, columnspan=1, sticky="news")
 
@@ -146,17 +138,6 @@ class Home(tk.Frame):
                                  bg="black",
                                  command=lambda: controller.show_frame(StakeholderSettings))
 
-        """
-        stake_button = UserInteractor("Stakeholder Settings",
-                                      tk.Button,
-                                      bottom,
-                                      text="Stakeholder Settings",
-                                      fg="white",
-                                      bg="black",
-                                      command=lambda: controller.show_frame(StakeholderSettings)
-                                      )
-        """
-
         stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
 
         tubes = self.tube_button_maker(bottom)
@@ -165,18 +146,6 @@ class Home(tk.Frame):
         canvas = FigureCanvasTkAgg(f, mid)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH,expand=True)
-
-        """
-        f = dataGen.fig
-
-        canvas = FigureCanvasTkAgg(f, self)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2Tk(canvas, self)
-        toolbar.update()
-        canvas.tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        """
 
     def tube_button_maker(self, parent, buttons=6):
         out = []
@@ -204,6 +173,7 @@ class BioreactorSettings(tk.Frame):
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
+        self.widgets = {}
 
         top = tk.Frame(self,
                        bg="red"
@@ -215,12 +185,31 @@ class BioreactorSettings(tk.Frame):
         top.grid(row=0, column=0, sticky="nesw")
         bottom.grid(row=1, column=0, sticky="nesw")
 
+
         for i in range(3):
-            top.columnconfigure(i, weight=1)
-            bottom.columnconfigure(i, weight=1)
+            if i != 1:
+                top.columnconfigure(i, weight=1)
+                bottom.columnconfigure(i, weight=1)
+            else:
+                top.columnconfigure(i, weight=3)
+                bottom.columnconfigure(i, weight=3)
+
         for i in range(5):
             top.rowconfigure(i, weight=1)
             bottom.rowconfigure(i, weight=1)
+
+        bio_setting_menu = tk.Frame(top,
+                                    bg="#daf542")
+        bio_setting_menu.grid(row=1,
+                              column=1,
+                              rowspan=4,
+                              sticky="news"
+                              )
+        bio_setting_menu.rowconfigure(0, weight=1)
+        bio_setting_menu.rowconfigure(1, weight=3)
+        bio_setting_menu.rowconfigure(2, weight=3)
+        bio_setting_menu.columnconfigure(0, weight=1)
+        bio_setting_menu.columnconfigure(1, weight=1)
 
         label = tk.Label(top, text="Bioreactor Settings", font=LARGE_FONT_BOLD)
         label.grid(row=0,
@@ -234,17 +223,6 @@ class BioreactorSettings(tk.Frame):
                                 fg="white",
                                 bg="green",
                                 command=lambda: controller.show_frame(Home))
-        """
-        home_button = UserInteractor(
-            "Home",
-            tk.Button,
-            top,
-            text="Back to Home",
-            fg="white",
-            bg="green",
-            command=lambda: controller.show_frame(Home)
-        )
-        """
 
         home_button.grid(row=0,
                          column=0,
@@ -252,36 +230,45 @@ class BioreactorSettings(tk.Frame):
                          padx=5,
                          pady=5)
 
+        bio_setting_menu.columnconfigure(0, weight=1)
+        bio_setting_menu.rowconfigure(0, weight=1)
+        bio_setting_menu.rowconfigure(1, weight=3)
+        bio_setting_menu.rowconfigure(2, weight=3)
+
+        bio_title = tk.Label(bio_setting_menu, text="Tube Settings", font=LARGE_FONT)
+        bio_title.grid(row=0,
+                       column=0,
+                       columnspan=2)
+
+        heater = InfoButton(master=bio_setting_menu,
+                            message="Heaters: ",
+                            button_type=OnOffButton)
+        heater.grid(row=1,
+                    column=0)
+
+        air = InfoButton(master=bio_setting_menu,
+                         message="Air Pumps: ",
+                         button_type=OnOffButton
+                         )
+
+        air.grid(row=2,
+                 column=0
+                 )
+
+        light = InfoButton(master=bio_setting_menu,
+                           message="Lights: ",
+                           button_type=OnOffButton)
+        light.grid(row=1,
+                   column=1)
+
+        food = InfoButton(master=bio_setting_menu,
+                          message="Food Pumps: ",
+                          button_type=OnOffButton)
+        food.grid(row=2,
+                  column=1)
+
+
         """
-        ph_label = tk.Label(top,
-                            text="pH: ",
-                            font=LARGE_FONT)
-        ph_label.grid(row=1,
-                      column=0)
-
-        ph_slider = UserInteractor("ph",
-                                   tk.Scale,
-                                   top,
-                                   from_=4,
-                                   to_=9,
-                                   length=800,
-                                   resolution=0.01,
-                                   orient=tk.HORIZONTAL
-                                   )
-
-        ph_slider.grid(row=1,
-                       column=1)
-        
-        """
-
-        heater_label = tk.Label(top,
-                              text="Heater: ",
-                              font=LARGE_FONT)
-
-        heater_label.grid(row=2,
-                        column=0)
-
-
         interval_label = tk.Label(top,
                                   text="Graph Interval: ",
                                   font=LARGE_FONT)
@@ -298,13 +285,13 @@ class BioreactorSettings(tk.Frame):
             orient=tk.HORIZONTAL
         )
 
-        """
+        
         interval_slider = tk.Scale(top,
                                    from_=1,
                                    to_=20,
-                                   length=800,
+                                   length=800,  
                                    orient=tk.HORIZONTAL)
-        """
+        
 
         interval_slider.grid(row=3,
                              column=1)
@@ -314,18 +301,14 @@ class BioreactorSettings(tk.Frame):
                               font=LARGE_FONT)
         read_label.pack(side=tk.LEFT,
                         padx=(120, 0))
-
+        
         read_entry = UserInteractor(
             "read interval",
             tk.Entry,
             bottom,
             width=80
         )
-
-        """
-        read_entry = tk.Entry(bottom,
-                              width=80)
-        """
+        
 
         read_entry.pack(side=tk.RIGHT)
 
@@ -335,10 +318,10 @@ class BioreactorSettings(tk.Frame):
             bottom,
             width=80
         )
-        """
+        
         data_entry = tk.Entry(bottom,
                               width=80)
-        """
+
         data_entry.pack(side=tk.LEFT,
                         padx=(120, 0))
 
@@ -346,7 +329,7 @@ class BioreactorSettings(tk.Frame):
                               text="Data Lifespan: ",
                               font=LARGE_FONT)
         data_label.pack(side=tk.RIGHT, padx=(0, 120))
-
+        """
         confirm = tk.Button(bottom,
                             text="Confirm",
                             command=lambda: confirm_box(get_parameters,
@@ -390,9 +373,7 @@ class StakeholderSettings(tk.Frame):
         title = tk.Label(top, text="Stakeholder Settings", font=LARGE_FONT_BOLD)
         title.grid(row=0, column=1, sticky="n")
 
-        home_button = UserInteractor(
-            "Home",
-            tk.Button,
+        home_button = tk.Button(
             top,
             text="Back to Home",
             fg="white",
@@ -406,17 +387,17 @@ class StakeholderSettings(tk.Frame):
                          padx=5,
                          pady=5)
 
-        stakeholders = open("stakeholders.csv", "r")
-        table = StakeholderManager(mid, stakeholders.readline().split(","))
+        #stakeholders = open("stakeholders.csv", "r")
+        table = StakeholderManager(mid, ["Name", "Email"])
         table.insert_data_from_csv()
 
-        add = UserInteractor("add",
-                             tk.Button,
-                             bottom,
-                             text="Add Stakeholder",
-                             font=("bold", 20),
-                             command=table.insert_data
-                             )
+        add = tk.Button(
+            bottom,
+            text="Add Stakeholder",
+            font=("bold", 20),
+            command=table.insert_data
+        )
+
 
         add.grid(row=0,
                  column=0,
@@ -425,13 +406,12 @@ class StakeholderSettings(tk.Frame):
                  pady=15
                  )
 
-        delete = UserInteractor("delete",
-                                tk.Button,
-                                bottom,
-                                text="Delete Stakeholder",
-                                font=("bold", 20),
-                                command=table.delete_data
-                                )
+        delete = tk.Button(
+            bottom,
+            text="Delete Stakeholder",
+            font=("bold", 20),
+            command=lambda: confirm_box(table.delete_data, "Are you sure you want to delete this stakeholder?")
+            )
 
         delete.grid(row=0,
                     column=1,
@@ -440,12 +420,11 @@ class StakeholderSettings(tk.Frame):
                     pady=15
                     )
 
-        clear = UserInteractor("clear",
-                               tk.Button,
-                               bottom,
-                               text="Clear Stakeholders",
-                               font=("bold", 20),
-                               command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
+        clear = tk.Button(
+            bottom,
+            text="Clear Stakeholders",
+            font=("bold", 20),
+            command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
                                )
 
         clear.grid(row=0,

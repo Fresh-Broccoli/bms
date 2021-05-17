@@ -4,7 +4,6 @@ from email.mime.text import MIMEText
 
 from collections import defaultdict, OrderedDict
 
-
 class BioreactorGmailBot:
     def __init__(self, email, password):
         """ Initialises the bioreactor email bot

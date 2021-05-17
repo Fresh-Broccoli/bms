@@ -8,15 +8,26 @@ from file_messer import *
 # Modified by Jay Zhong to work with the bioreactor monitoring system.
 
 class StakeholderManager(tk.Frame):
+    """ Manages the front and backend aspects of the Stakeholders Settings page.
+    """
     def __init__(self, root, colnames):
+        """ Initialises StakeholderManager
+
+        :param root: the parent of this widget.
+        :param colnames: a list of Strings that determines each column heading.
+        """
         tk.Frame.__init__(self, root)
         self.received_data = None
+        self.file_directory = os.path.join("assets", "settings", "stakeholders.csv")
         self.id = 0
         self.iid = 0
         self.root = root
         self.initialize_user_interface(colnames)
 
     def initialize_user_interface(self, colnames):
+        """ Creates the frontend "spreadsheet" that the end-user will see and use.
+        :param colnames: a list of Strings that determines each column heading.
+        """
         # Configure the root object for the Application
         # self.root.title("Stakeholder Manager")
         self.root.grid_rowconfigure(0, weight=1)
@@ -39,13 +50,15 @@ class StakeholderManager(tk.Frame):
         self.treeview = self.tree
 
     def insert_data(self):
+        """ Inserts a new row of data in the order of Name and Email.
+        """
         name = tk.simpledialog.askstring(title="Add Stakeholder",
                                          prompt="Name:")
         if name:
             email = tk.simpledialog.askstring(title="Add Stakeholder",
                                               prompt="Email:")
             if validate_email(email):
-                with open("stakeholders.csv", "a") as stakeholders:
+                with open(self.file_directory, "a") as stakeholders:
                     stakeholders.write(f"{name},{email}\n")
                 self.treeview.insert('', 'end', iid=self.iid, text=self.id,
                                      values=(name, email))
@@ -57,8 +70,10 @@ class StakeholderManager(tk.Frame):
             tk.messagebox.showinfo(title="Invalid Name", message="Please insert your name!")
 
     def insert_data_from_csv(self):
-        cleanse("stakeholders.csv")
-        stakeholders = open("stakeholders.csv", "r")
+        """ Reads a .csv file to display its data on the frontend "spreadsheet".
+        """
+        cleanse(self.file_directory)
+        stakeholders = open(self.file_directory, "r")
         stakeholders.readline()  # Skip header
         for stakeholder in stakeholders:
             name, email = stakeholder.split(",")
@@ -69,27 +84,34 @@ class StakeholderManager(tk.Frame):
         stakeholders.close()
 
     def delete_data(self, selection=None):
+        """ Deletes a selected row.
+        The selected row is erased both at the front and backend. To maintain stability, the row is replaced by a
+        question mark, which will be cleansed when the cleanse() function is invoked by addition new rows.
+        :param selection: The index of the selected row.
+        """
         try:
             if not selection:
                 selected_item = self.tree.selection()[0] # get selected item
             else:
                 selected_item = selection
-            delete_line("stakeholders.csv", int(selected_item)+1)
-            """
-            with open("stakeholders.csv") as stakeholders:
-                stakeholders.
-            """
+            delete_line(self.file_directory, int(selected_item)+1)
             self.tree.delete(selected_item)
         except IndexError:
             tk.messagebox.showinfo(title="No target", message="Can't delete, no row selected.")
 
     def clear_data(self):
-        with open("stakeholders.csv", "w+") as f:
+        """Replaces the current stakeholders.csv file with a blank .csv file with its heading only.
+        """
+        with open(self.file_directory, "w+") as f:
             f.write("Name,Email\n")
         for child in self.tree.get_children():
             self.tree.delete(child)
 
 def validate_email(email):
+    """ Regex matches input to determine whether it's a valid email or not.
+    :param email: the String that we're interested to see if it's a valid email or not.
+    :return:
+    """
     # Regex pattern taken from: https://www.geeksforgeeks.org/check-if-email-address-valid-or-not-in-python/
     return re.match('^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$', email)
 
