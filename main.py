@@ -13,6 +13,7 @@ from treeUI import StakeholderManager
 from popups import confirm_box
 from onoff import OnOffButton
 from info_button import InfoButton
+from menu import DropDownBox
 import tkinter as tk
 
 
@@ -112,16 +113,7 @@ class Home(tk.Frame):
                                 fg="white",
                                 bg="red",
                                 command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
-        """
-        quit_button = UserInteractor("Quit",
-                                     tk.Button,
-                                     top,
-                                     text="Quit",
-                                     fg="white",
-                                     bg="red",
-                                     command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?")
-                                     )
-        """
+
         quit_button.grid(row=0, column=2, sticky="ne")
 
         bio_button = tk.Button(bottom,
@@ -173,10 +165,11 @@ class BioreactorSettings(tk.Frame):
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
-        self.widgets = {}
+        self.widgets = {"tubes":{},
+                        "data":{}}
 
         top = tk.Frame(self,
-                       bg="red"
+                       bg="red",
                        )
         bottom = tk.Frame(self,
                           bg="blue",
@@ -184,7 +177,6 @@ class BioreactorSettings(tk.Frame):
 
         top.grid(row=0, column=0, sticky="nesw")
         bottom.grid(row=1, column=0, sticky="nesw")
-
 
         for i in range(3):
             if i != 1:
@@ -199,24 +191,51 @@ class BioreactorSettings(tk.Frame):
             bottom.rowconfigure(i, weight=1)
 
         bio_setting_menu = tk.Frame(top,
-                                    bg="#daf542")
+                                    bg="#daf542"
+                                    )
         bio_setting_menu.grid(row=1,
                               column=1,
-                              rowspan=4,
+                              rowspan=3,
                               sticky="news"
                               )
+
         bio_setting_menu.rowconfigure(0, weight=1)
         bio_setting_menu.rowconfigure(1, weight=3)
         bio_setting_menu.rowconfigure(2, weight=3)
         bio_setting_menu.columnconfigure(0, weight=1)
         bio_setting_menu.columnconfigure(1, weight=1)
 
+        data_setting_menu = tk.Frame(bottom,
+                                      bg="#8bf773",
+                                     )
+        data_setting_menu.grid(row=0,
+                                column=1,
+                                rowspan=3,
+                                sticky="news",
+                                )
+
+        data_setting_menu.rowconfigure(0, weight=1)
+        data_setting_menu.rowconfigure(1, weight=3)
+        data_setting_menu.rowconfigure(2, weight=3)
+        data_setting_menu.columnconfigure(0, weight=1)
+        data_setting_menu.columnconfigure(1, weight=1)
+
         label = tk.Label(top, text="Bioreactor Settings", font=LARGE_FONT_BOLD)
         label.grid(row=0,
                    column=1,
                    sticky="n",
-                   padx=5,
-                   pady=5)
+                   #padx=5,
+                   #pady=5,
+                   )
+
+        data_title = tk.Label(data_setting_menu,
+                              text="Data Settings",
+                              font=LARGE_FONT
+                              )
+        data_title.grid(row=0,
+                        column=0,
+                        columnspan=2)
+
 
         home_button = tk.Button(top,
                                 text="Back to Home",
@@ -227,8 +246,9 @@ class BioreactorSettings(tk.Frame):
         home_button.grid(row=0,
                          column=0,
                          sticky="nw",
-                         padx=5,
-                         pady=5)
+                         #padx=5,
+                         #pady=5
+                         )
 
         bio_setting_menu.columnconfigure(0, weight=1)
         bio_setting_menu.rowconfigure(0, weight=1)
@@ -238,13 +258,17 @@ class BioreactorSettings(tk.Frame):
         bio_title = tk.Label(bio_setting_menu, text="Tube Settings", font=LARGE_FONT)
         bio_title.grid(row=0,
                        column=0,
-                       columnspan=2)
+                       columnspan=2
+                       )
 
         heater = InfoButton(master=bio_setting_menu,
                             message="Heaters: ",
                             button_type=OnOffButton)
         heater.grid(row=1,
-                    column=0)
+                    column=0,
+                    #sticky="news"
+                    )
+        self.widgets["tubes"]["heater"] = heater
 
         air = InfoButton(master=bio_setting_menu,
                          message="Air Pumps: ",
@@ -252,22 +276,79 @@ class BioreactorSettings(tk.Frame):
                          )
 
         air.grid(row=2,
-                 column=0
+                 column=0,
+                 #sticky="news"
                  )
+        self.widgets["tubes"]["air"] = air
 
         light = InfoButton(master=bio_setting_menu,
                            message="Lights: ",
                            button_type=OnOffButton)
         light.grid(row=1,
-                   column=1)
+                   column=1,
+                   #sticky="news"
+                   )
+        self.widgets["tubes"]["light"] = light
 
         food = InfoButton(master=bio_setting_menu,
                           message="Food Pumps: ",
                           button_type=OnOffButton)
         food.grid(row=2,
-                  column=1)
+                  column=1,
+                  #sticky="news"
+                  )
+        self.widgets["tubes"]["food"] = food
 
+        data_points = DropDownBox(data_setting_menu, "No. of data points: ", [i for i in range(3,16)], 3)
+        data_points.grid(row=1,
+                         column=0,
+                         )
 
+        read_interval = DropDownBox(data_setting_menu, "Read Interval: ",
+                                    {
+                                        "1sec":1000,
+                                         "5sec":5000,
+                                         "10sec":10000,
+                                         "15sec":15000,
+                                         "30sec":30000,
+                                         "1min":60000,
+                                         "5min":300000,
+                                         "10min":600000,
+                                         "30min":1800000,
+                                         "1hour":3600000,
+                                         "3hour":10800000,
+                                         "6hour":21600000,
+                                         "12hour":43200000,
+                                         "24hour":86400000
+                                    },
+                                    "5sec")
+        read_interval.grid(row=1,
+                           column=1,
+                           )
+
+        data_life = DropDownBox(data_setting_menu, "Data Lifespan: ",
+                                {
+                                    "1day":86400000,
+                                    "2day":172800000,
+                                    "3day":259200000,
+                                    "4day":345600000,
+                                    "5day":432000000,
+                                    "6day":518400000,
+                                    "1week":604800000,
+                                    "2week":1209600000,
+                                    "3week":1814400000,
+                                    "1mon":2419200000,
+                                    "2mon":4838400000,
+                                    "3mon":7257600000,
+                                    "4mon":9676800000
+                                },
+                                "1day"
+                                )
+
+        data_life.grid(row=1,
+                       column=0,
+                       columnspan=2
+        )
         """
         interval_label = tk.Label(top,
                                   text="Graph Interval: ",
@@ -334,16 +415,16 @@ class BioreactorSettings(tk.Frame):
                             text="Confirm",
                             command=lambda: confirm_box(get_parameters,
                                                         "Are you sure you want to make this change?",
-                                                        interval_slider,
-                                                        read_entry,
-                                                        data_entry),
+                                                        self),
                             fg="white",
                             bg="red",
                             height=5,
                             width=20
                             )
-        confirm.pack(side=tk.BOTTOM)
-
+        confirm.grid(row=4,
+                     column=1,
+                     #sticky="news",
+                     )
 
 class StakeholderSettings(tk.Frame):
     def __init__(self, parent, controller):
@@ -384,10 +465,10 @@ class StakeholderSettings(tk.Frame):
         home_button.grid(row=0,
                          column=0,
                          sticky="nw",
-                         padx=5,
-                         pady=5)
+                         #padx=5,
+                         #pady=5,
+                         )
 
-        #stakeholders = open("stakeholders.csv", "r")
         table = StakeholderManager(mid, ["Name", "Email"])
         table.insert_data_from_csv()
 
@@ -395,43 +476,45 @@ class StakeholderSettings(tk.Frame):
             bottom,
             text="Add Stakeholder",
             font=("bold", 20),
+            bg="green",
             command=table.insert_data
         )
-
 
         add.grid(row=0,
                  column=0,
                  sticky="news",
-                 padx=15,
-                 pady=15
+                 #padx=15,
+                 #pady=15,
                  )
 
         delete = tk.Button(
             bottom,
             text="Delete Stakeholder",
             font=("bold", 20),
+            bg="red",
             command=lambda: confirm_box(table.delete_data, "Are you sure you want to delete this stakeholder?")
             )
 
         delete.grid(row=0,
                     column=1,
                     sticky="news",
-                    padx=15,
-                    pady=15
+                    #padx=15,
+                    #pady=15
                     )
 
         clear = tk.Button(
             bottom,
             text="Clear Stakeholders",
             font=("bold", 20),
+            bg="white",
             command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
                                )
 
         clear.grid(row=0,
                    column=2,
                    sticky="news",
-                   padx=15,
-                   pady=15
+                   #padx=15,
+                   #pady=15,
                    )
 
 
@@ -479,21 +562,25 @@ class UserInteractor:
         self.widget.grid(*args, **kwargs)
 
 
-def get_parameters(*widgets):
-    """ Gets values from inserted widgets
-
+def get_parameters(page):
+    """ Gets values of widgets from a specific page.
+    Said page MUST contain a dictionary named 'self.widgets' for this to work.
     Parameter
     ---------
-    widgets (List[String]*): Widget (variable) names are stored as Strings, which will be used as a reference to
-        gather field values.
+    page (tk.Frame *custom): a custom tk.Frame object containing self.widgets.
 
     Return
     ------
     A dictionary with the name of the widget as the key, and its value as the element.
 
     """
-    out = dict([(widget.name, widget.get()) for widget in widgets])
-    return out  # This output should be passed onto another function that will take them and make changes appropriately.
+    out = {}
+    for typ, dic in page.widgets.items():
+        temp_dict = {}
+        for name, widget in dic.items():
+            temp_dict[name] = widget.get()
+        out[typ] = temp_dict
+    return out
 
 
 def print_output(func, *args):
