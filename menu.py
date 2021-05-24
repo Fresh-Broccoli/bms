@@ -11,25 +11,74 @@ class DropDownBox(tk.Frame):
         :param values: A list/dictionary of options that the user can choose from. It excludes the option from default_value.
         """
         super().__init__(master)
-        self.value = tk.IntVar(self)
-
-        if default_value:
-            self.value.set(default_value)
+        self.value = tk.StringVar(self)
+        self.original_value = tk.StringVar(self)
+        self.backend_value = tk.IntVar(self)
+        self.changed = False
+        self.dictionary = None
 
         if isinstance(values, dict):
             self.dictionary = values
             self.menu = tk.OptionMenu(self, self.value, *values.keys())
-        else:
+
+        else: # Else, a list.
             self.menu = tk.OptionMenu(self, self.value, *values)
+
+        if default_value:
+            self.set(default_value)
+            self._set_og(default_value)
+
         self.title = tk.Label(self, text=title)
         self.menu.pack(side=tk.BOTTOM)
         self.title.pack(side=tk.BOTTOM)
+        self.value.trace("w", self.changed_check)
+
 
     def get(self):
         """ Returns the selected value from the list of options.
-        :return: The selected value.
+        :return: an Integer representing the selected value.
         """
-        return self.dictionary[self.value.get()] if self.dictionary else self.value.get()
+        return self.value.get()
+        #return self.dictionary[self.value.get()] if self.dictionary else self.value.get()
+
+    def get_val(self):
+        return self.backend_value
+
+    def set(self, value):
+        self.value.set(value)
+
+    def changed_check(self, *args):
+        #print("Current value: ", self.value.get())
+        #print("Original value: ", self._get_og())
+        if self.value.get() != self._get_og(): # If current value does not equal to original value, there has been a change.
+            self.changed = True # Therefore, there has been a change.
+        else:
+            self.changed = False # If the two values match, then no changes have been made.
+
+    def confirm(self):
+        self.original_value.set(self.value.get())
+        if self.dictionary:
+            self.backend_value.set(self.dictionary[self.get()])
+        else:
+            self.backend_value.set(self.get())
+        self.changed = False
+
+    def is_changed(self):
+        return self.changed
+
+    def reset(self):
+        if self.changed:
+            self.value.set(self._get_og())
+            self.changed = False
+
+    def _get_og(self):
+        return self.original_value.get()
+
+    def _set_og(self, value):
+        self.original_value.set(value)
+
+    def _change(self):
+        self.changed = not self.changed
 
 if __name__ == "__main__":
 

@@ -1,0 +1,13 @@
+{
+    "tubes": {
+        "heater": "On",
+        "air": "On",
+        "light": "On",
+        "food": "On"
+    },
+    "data": {
+        "data_points": 5,
+        "read_interval": "5sec",
+        "data_life": "1day"
+    }
+}

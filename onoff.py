@@ -15,18 +15,30 @@ class OnOffButton(tk.Button):
         self["text"] = text
         self["command"] = self.switch
         self["fg"] = "white"
+        self.value_holder = tk.IntVar(self)
+        self.changed = False
         self.update_settings(text)
+        self.value_holder.trace("w", self._change)
 
     def switch(self):
         """ Flips the switch
         If the button is on, turn it off. If the button is off, turn it on.
         """
-        if self.mode:
+        if self.value:
             self.update_settings("Off")
-
         else:
             self.update_settings("On")
+        #print(self.value_holder.get())
 
+    def set(self, mode):
+        """ Forces OnOffButton to switch on/off depending on mode
+        :param mode: 0 or 1
+        """
+        if self.value:
+            if self.value != mode:
+                self.switch()
+        else:
+            raise ValueError
 
     def update_settings(self, text):
         """ Change button attributes to reflect on the flip of the switch.
@@ -37,7 +49,9 @@ class OnOffButton(tk.Button):
         :param text: Either "On" or "Off"
         """
         self.settings = OnOffButton.mode[text]
-        self.mode = self.settings[0]
+        self.value = self.settings[0]
+
+        self.value_holder.set(self.value)
         self.config(text=text)
         self["bg"] = self.settings[1]
 
@@ -56,8 +70,24 @@ class OnOffButton(tk.Button):
                 return num
             raise ValueError
 
-if __name__ == "__maine__":
+    def is_changed(self):
+        return self.changed
 
+    def reset(self):
+        if self.changed:
+            self.switch()
+
+    def _change(self, *args):
+        """
+        Reverses self.changed after the on/off button is pressed. This will guarantee that if the button is pressed
+        twice (eg: on > off > on), it will remain unchanged.
+        :param args: Needed for the trace function to work.
+        :return:
+        """
+        self.changed = not self.changed
+        #print(self.changed)
+
+if __name__ == "__maine__":
 
     # Create an instance of window of frame
     win = tk.Tk()
@@ -74,14 +104,11 @@ if __name__ == "__maine__":
 
     #Create a variable to turn on the button initially
 
-
     # Create Label to display the message
     label = tk.Label(win,text = "Night Mode is On",bg= "white",fg ="black",font =("Poppins bold", 22))
     label.pack(pady = 20)
 
-
     # Define Our Images
-
 
     # Create A Button
     on= OnOffButton(win)

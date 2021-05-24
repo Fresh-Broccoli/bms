@@ -1,11 +1,14 @@
 import tkinter as tk
+from onoff import OnOffButton
+
 
 class InfoButton(tk.Frame):
     """ Custom widget that combines a tk.Label with a tk.Button.
     It's special in the sense that the two widgets are always placed right next to each other since they're both stored
     in an isolated tk.Frame.
     """
-    def __init__(self, master, message, button_type, position=tk.RIGHT, **button_param):
+
+    def __init__(self, master, message, position=tk.RIGHT, **button_param):
         """ Initialises InfoButton
         :param master: the owner of this widget.
         :param message: the text message to be displayed in the tk.Label.
@@ -16,7 +19,7 @@ class InfoButton(tk.Frame):
         """
         super().__init__(master)
         self.label = tk.Label(self, text=message)
-        self.button = button_type(self, **button_param)
+        self.button = OnOffButton(self, **button_param)
         self.button.pack(side=position, fill=tk.BOTH)
         self.label.pack(side=position, fill=tk.BOTH)
 
@@ -30,4 +33,18 @@ class InfoButton(tk.Frame):
         """ Sets the mode of the button.
         :param val: 0 or 1.
         """
-        self.button.update_settings(self.button.translate(val))
+        if isinstance(val, int):
+            self.button.update_settings(val)
+        elif isinstance(val, str):
+            self.button.update_settings(self.button.translate(val))
+
+    def is_changed(self):
+        return self.button.changed
+
+    def reset(self):
+        if self.button.is_changed():
+            self.button.reset()
+
+
+    def confirm(self):
+        self.button.changed = False
