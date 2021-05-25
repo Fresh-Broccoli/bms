@@ -30,6 +30,9 @@ class OnOffButton(tk.Button):
             self.update_settings("On")
         #print(self.value_holder.get())
 
+    def get(self):
+        return self.translate(self.value)
+
     def set(self, mode):
         """ Forces OnOffButton to switch on/off depending on mode
         :param mode: 0 or 1

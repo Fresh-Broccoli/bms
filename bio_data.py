@@ -15,15 +15,15 @@ class BioSettingsManager:
 
     def update(self, category, key, value):
         self.settings[category][key] = value
-        self.save()
         self.changed = True
 
     def save(self):
-        with open(self.directory, "w+") as f:
-            json.dump(self.settings, f, indent=4)
-        self.changed = False
-        self.default_settings = self.settings
-        #print(self.default_settings)
+        if self.changed:
+            with open(self.directory, "w+") as f:
+                json.dump(self.settings, f, indent=4)
+            self.changed = False
+            self.default_settings = self.settings
+            print("Saved settings: ", self.settings)
 
     def settings_set(self, widget, category, key):
         widget.set(self.settings[category][key])

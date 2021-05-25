@@ -27,7 +27,7 @@ class InfoButton(tk.Frame):
         """ Gets the mode of the button.
         :return: 0 or 1.
         """
-        return self.button.mode
+        return self.button.get()
 
     def set(self, val):
         """ Sets the mode of the button.

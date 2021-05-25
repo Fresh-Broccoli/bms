@@ -78,7 +78,7 @@ class TwoLiveData:
                 # Remove the oldest file:
                 # Taken from: https://stackoverflow.com/questions/47739262/find-remove-oldest-file-in-directory
                 list_of_files = os.listdir('data')
-                if len(list_of_files) >= self.settings["data_lifespan"]:
+                if len(list_of_files) >= data_life[self.settings["data_life"]]:
                     oldest_file = min(list_of_files, key=os.path.getctime)
                     os.remove(os.path.abspath(oldest_file))
 
@@ -180,29 +180,31 @@ class TwoLiveData:
         ------
         FuncAnimation
         """
-        return animation.FuncAnimation(self.fig, self.animate, interval=self.settings["read_interval"])
+        return animation.FuncAnimation(self.fig, self.animate, interval=read_interval[self.settings["read_interval"]])
 
     def load_settings(self):
-        settings_path = os.path.join("assets", "settings","global_data_settings.json")
-        if os.path.isfile(settings_path): # Checks and sees if there's a pre-existing settings file.
-            with open(settings_path) as f: # If so, load its content as its settings
-                settings = json.load(f)
-        else: # Otherwise, load default settings and create a copy of it for future customisation.
-            with open(os.path.join("assets", "settings", "global_data_settings_default.json")) as f:
-                settings = json.load(f)
-            with open(settings_path, "w+") as f:
-                json.dump(settings, f, indent=4)
+        settings_path = os.path.join("assets", "settings","bioreactor_settings.json")
+        #if os.path.isfile(settings_path): # Checks and sees if there's a pre-existing settings file.
+        with open(settings_path) as f: # If so, load its content as its settings
+            settings = json.load(f)
+            settings = settings["data"]
+
 
         # These are temporary randomly generated data points. They will be replaced by actual data points soon.
-        self.y = deque(self.y, settings["data_points"])
-        self.h = deque(self.h, settings["data_points"])
-        self.t = deque(self.t, settings["data_points"])
-        self.other_y, self.other_h = [deque([], settings["data_points"]) for _ in range(5)], [deque([],
-                                                                                                         settings["data_points"]) for _ in range(5)]
+        self.y = deque(self.y, int(settings["data_points"]))
+        self.h = deque(self.h, int(settings["data_points"]))
+        self.t = deque(self.t, int(settings["data_points"]))
+        self.other_y, self.other_h = [deque([], int(settings["data_points"])) for _ in range(5)], [deque([],
+                                                                                                         int(settings["data_points"])) for _ in range(5)]
         return settings
 
     def update_settings(self):
         pass
+
+with open(os.path.join("assets", "settings", "data_life.json")) as f:
+    data_life = json.load(f)
+with open(os.path.join("assets", "settings", "read_interval.json")) as f:
+    read_interval = json.load(f)
 
 if __name__ == "__main__":
     producer = TwoLiveData()
