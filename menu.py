@@ -16,17 +16,13 @@ class DropDownBox(tk.Frame):
         self.backend_value = tk.IntVar(self)
         self.changed = False
         self.dictionary = None
-
-        if isinstance(values, dict):
-            self.dictionary = values
-            self.menu = tk.OptionMenu(self, self.value, *values.keys())
-
-        else: # Else, a list.
-            self.menu = tk.OptionMenu(self, self.value, *values)
+        self.menu = tk.OptionMenu(self, self.value, *values)
 
         if default_value:
             self.set(default_value)
-            self._set_og(default_value)
+            self.confirm()
+            #self._set_og(default_value)
+
 
         self.title = tk.Label(self, text=title)
         self.menu.pack(side=tk.BOTTOM)
@@ -39,10 +35,9 @@ class DropDownBox(tk.Frame):
         :return: an Integer representing the selected value.
         """
         return self.value.get()
-        #return self.dictionary[self.value.get()] if self.dictionary else self.value.get()
 
     def get_val(self):
-        return self.backend_value
+        return self.backend_value.get()
 
     def set(self, value):
         self.value.set(value)

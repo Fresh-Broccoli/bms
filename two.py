@@ -183,11 +183,10 @@ class TwoLiveData:
         return animation.FuncAnimation(self.fig, self.animate, interval=read_interval[self.settings["read_interval"]])
 
     def load_settings(self):
-        settings_path = os.path.join("assets", "settings","bioreactor_settings.json")
+        settings_path = os.path.join("assets", "settings","data_settings.json")
         #if os.path.isfile(settings_path): # Checks and sees if there's a pre-existing settings file.
         with open(settings_path) as f: # If so, load its content as its settings
             settings = json.load(f)
-            settings = settings["data"]
 
 
         # These are temporary randomly generated data points. They will be replaced by actual data points soon.
