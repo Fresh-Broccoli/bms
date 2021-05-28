@@ -27,13 +27,13 @@ class TwoLiveData:
         self.t = []
         self.settings = self.load_settings()
 
-        self.today = datetime.today().strftime("%d/%m/%Y")
+        self.now = datetime.now()
 
         #self.mail_bot = BioreactorGmailBot("bioreactor.bot@gmail.com", "75q3@*NyiVDKmr_k")
 
         # Clear everything in data.
-        for i in os.listdir("data"):
-            os.remove(os.path.join("data", i))
+        #for i in os.listdir("data"):
+        #    os.remove(os.path.join("data", i))
 
     def gen_data(self):
         """ Generates random data
@@ -51,7 +51,7 @@ class TwoLiveData:
 
         Parameter
         ---------
-        i (?): Don't know, it's needed for FuncAnimation though.
+        i (?): Don't know, but it's needed for FuncAnimation though.
         """
         # print("Time: ", self.t)
         # print("Melb Temp: ", self.y)
@@ -62,29 +62,25 @@ class TwoLiveData:
         genH = random.randint(20, 40)
 
         other_data = [self.gen_data() for _ in range(5)]
-        time = datetime.now().strftime("%H:%M:%S")
+        now = datetime.now()
+        time = now.strftime("%H:%M:%S")
 
-        directory = os.path.join("data", self.today + ".csv")
-        also_today = str(datetime.today().date())
-        new_day = False
+        directory = os.path.join("data", now.strftime("%d-%m-%Y") + ".csv")
 
-        if self.today != also_today:
-            directory = os.path.join("data", also_today + ".csv")
-            new_day = True
+        new_day = not os.path.isfile(directory)
 
         with open(directory, "a+", newline='', encoding="utf-8") as seesv:
             writer = csv.writer(seesv)
-            if new_day:
+            # Check and see if this new .csv file already exists
+            if new_day: # If it doesn't exist, append heading
+                writer.writerow(["Time", "Average pH", "Average Temperature °C"])
                 # Remove the oldest file:
                 # Taken from: https://stackoverflow.com/questions/47739262/find-remove-oldest-file-in-directory
                 list_of_files = os.listdir('data')
                 if len(list_of_files) >= data_life[self.settings["data_life"]]:
                     oldest_file = min(list_of_files, key=os.path.getctime)
                     os.remove(os.path.abspath(oldest_file))
-
-                writer.writerow(["Time", "Average pH", "Average Temperature °C"])
-                self.today = also_today
-            writer.writerow([time, genY, genH])
+            writer.writerow([time, genY, genH]) # Append new data
 
         # Sends a mail to the email address if Melbourne temperature exceeds 30C.
         """ Sending an email with threading
@@ -139,7 +135,6 @@ class TwoLiveData:
         for axe in self.ax:
             axe.clear()
 
-
         """
         # Bar Graph
         pH = [random.randint(6,9) for _ in range(6)]
@@ -161,12 +156,10 @@ class TwoLiveData:
         self.ax[1].legend(title="Temperature", loc="upper left")
         # End of Line graph
 
-
         self.ax[0].set(ylabel="pH")
         self.ax[1].set(xlabel="Time", ylabel="°C")
 
         plt.setp(self.ax[0].get_xticklabels(), visible=False)
-
 
 
     def animator(self, interval=1000):
@@ -188,7 +181,6 @@ class TwoLiveData:
         with open(settings_path) as f: # If so, load its content as its settings
             settings = json.load(f)
 
-
         # These are temporary randomly generated data points. They will be replaced by actual data points soon.
         self.y = deque(self.y, int(settings["data_points"]))
         self.h = deque(self.h, int(settings["data_points"]))
@@ -199,6 +191,44 @@ class TwoLiveData:
 
     def update_settings(self):
         pass
+
+# Taken from: https://thispointer.com/python-get-last-n-lines-of-a-text-file-like-tail-command/
+def get_last_n_lines(file_name, N):
+    # Create an empty list to keep the track of last N lines
+    list_of_lines = []
+    # Open file for reading in binary mode
+    with open(file_name, 'rb') as read_obj:
+        # Move the cursor to the end of the file
+        read_obj.seek(0, os.SEEK_END)
+        # Create a buffer to keep the last read line
+        buffer = bytearray()
+        # Get the current position of pointer i.e eof
+        pointer_location = read_obj.tell()
+        # Loop till pointer reaches the top of the file
+        while pointer_location >= 0:
+            # Move the file pointer to the location pointed by pointer_location
+            read_obj.seek(pointer_location)
+            # Shift pointer location by -1
+            pointer_location = pointer_location -1
+            # read that byte / character
+            new_byte = read_obj.read(1)
+            # If the read byte is new line character then it means one line is read
+            if new_byte == b'\n':
+                # Save the line in list of lines
+                list_of_lines.append(buffer.decode()[::-1])
+                # If the size of list reaches N, then return the reversed list
+                if len(list_of_lines) == N:
+                    return list(reversed(list_of_lines))
+                # Reinitialize the byte array to save next line
+                buffer = bytearray()
+            else:
+                # If last read character is not eol then add it in buffer
+                buffer.extend(new_byte)
+        # As file is read completely, if there is still data in buffer, then its first line.
+        if len(buffer) > 0:
+            list_of_lines.append(buffer.decode()[::-1])
+    # return the reversed list
+    return list(reversed(list_of_lines))
 
 with open(os.path.join("assets", "settings", "data_life.json")) as f:
     data_life = json.load(f)

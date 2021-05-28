@@ -60,8 +60,6 @@ class Application(tk.Tk):
             self.frames[t] = frame
             frame.grid(row=0,column=0,sticky="news")
 
-        print(self.frames)
-
         self.show_frame(Home)
 
     def toggleFullScreen(self, event):
