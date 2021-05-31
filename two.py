@@ -21,14 +21,12 @@ class TwoLiveData:
 
         """
         self.fig, self.ax = plt.subplots(2)
-        #plt.tight_layout(pad=1.08, h_pad=1.5)
-        self.y = []
-        self.h = []
-        self.t = []
         self.settings = self.load_settings()
 
         self.now = datetime.now()
 
+        # Logging into Gmail...
+        # Needed for the email bot to work.
         #self.mail_bot = BioreactorGmailBot("bioreactor.bot@gmail.com", "75q3@*NyiVDKmr_k")
 
         # Clear everything in data.
@@ -182,9 +180,9 @@ class TwoLiveData:
             settings = json.load(f)
 
         # These are temporary randomly generated data points. They will be replaced by actual data points soon.
-        self.y = deque(self.y, int(settings["data_points"]))
-        self.h = deque(self.h, int(settings["data_points"]))
-        self.t = deque(self.t, int(settings["data_points"]))
+        self.y = deque([], int(settings["data_points"]))
+        self.h = deque([], int(settings["data_points"]))
+        self.t = deque([], int(settings["data_points"]))
         self.other_y, self.other_h = [deque([], int(settings["data_points"])) for _ in range(5)], [deque([],
                                                                                                          int(settings["data_points"])) for _ in range(5)]
         return settings

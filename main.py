@@ -74,12 +74,15 @@ class Application(tk.Tk):
         frame = self.frames[cont]
         frame.tkraise()
 
+    def show_frame_and_do(self, cont, func, *args, **kwargs):
+        self.show_frame(cont)
+        func(*args, *kwargs)
 
 class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-
+        self.controller = controller
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=5)
@@ -139,15 +142,15 @@ class Home(tk.Frame):
 
         stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
 
-        tubes = self.tube_button_maker(bottom)
+        self.tubes = self.tube_button_maker(bottom)
 
         # Can't add unique commands in a for-loop for some reason...
-        tubes[0]["command"] = lambda: controller.show_frame("T1")
-        tubes[1]["command"] = lambda: controller.show_frame("T2")
-        tubes[2]["command"] = lambda: controller.show_frame("T3")
-        tubes[3]["command"] = lambda: controller.show_frame("T4")
-        tubes[4]["command"] = lambda: controller.show_frame("T5")
-        tubes[5]["command"] = lambda: controller.show_frame("T6")
+        self.tubes[0]["command"] = lambda: controller.show_frame("T1")
+        self.tubes[1]["command"] = lambda: controller.show_frame("T2")
+        self.tubes[2]["command"] = lambda: controller.show_frame("T3")
+        self.tubes[3]["command"] = lambda: controller.show_frame("T4")
+        self.tubes[4]["command"] = lambda: controller.show_frame("T5")
+        self.tubes[5]["command"] = lambda: controller.show_frame("T6")
 
         f = controller.live_data_manager.fig
         canvas = FigureCanvasTkAgg(f, mid)
@@ -168,7 +171,6 @@ class Home(tk.Frame):
 
                 )
             )
-
             out[-1].grid(row=2, column=i, sticky="ns")
 
         return out
@@ -184,10 +186,16 @@ class JsonInteractor(tk.Frame):
         #self.manager = SettingsManager()
 
     def _check_changes(self):
+        """ Private function used for checking whether the manager has been changed.
+        Since there are no other functions that will check for changes in the manager, this function will set the
+        changed status of its manager to False only if none of the widgets have been changed.
+        """
         for key, widget in self.widgets.items():
             if widget.is_changed():
                 self.manager.changed = True
                 break
+        else:
+            self.manager.changed = False
 
     def update_settings(self):
         for key, widget in self.widgets.items():
@@ -195,11 +203,32 @@ class JsonInteractor(tk.Frame):
             self.manager.update(key, widget.get())
 
     def reset(self):
+        """ Public reset
+        Resets all widgets only if there's a temporary change in its settings.
+        """
         if self.manager.is_changed():
             for _, widget in self.widgets.items():
                 widget.reset()
 
+    def _reset(self):
+        """ Private reset
+        Resets all widgets with no conditions.
+        :return:
+        """
+        for _, widget in self.widgets.items():
+            widget.reset()
+
+    def reset_and_go_home(self):
+        """ Reset all widgets and return home
+        """
+        self._reset()
+        self.controller.show_frame(Home)
+
     def return_home(self, mode="reset"):
+        """ **Outdated**
+        Return home with multiple modes. Can either undo or save changes and then return home.
+        Usage dropped because it will always ask the user whether to save/discard changes even if no changes were made.
+        """
         if mode == "reset":
             self._check_changes()
             self.reset()
@@ -208,6 +237,33 @@ class JsonInteractor(tk.Frame):
             self.manager.save()
             confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
         self.controller.show_frame(Home)
+
+    def return_home_smart(self):
+        """ A smarter version of return_home
+        Returns home straight-away if there are no changes in the system, otherwise it will ask the user whether they
+        want to return home or not, if so, all widgets will be reset to their initial state (before the user entered
+        this page).
+        """
+        self._check_changes() # Updates manager's changed status by going through each widget
+        if not self.manager.is_changed(): # If there are no changes,
+            self.controller.show_frame(Home) # return home
+        else: # Otherwise, ask the user whether they're certain that they want to undo their changes, if so, go home
+            # else, do nothing.
+            confirm_box(self.reset_and_go_home, "You have unsaved changes, are you sure you want to return home without saving?")
+
+    def confirm_smart(self):
+        self._check_changes()
+        if not self.manager.is_changed():
+            tk.messagebox.showinfo("Invalid", "You haven't changed any settings, so nothing will be saved.")
+        else:
+            confirm_box(self._save_and_go_home, "Are you sure you want to save your current settings?")
+
+    def _save_and_go_home(self):
+        self.update_settings()
+        self.manager.save()
+        confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
+        self.controller.show_frame(Home)
+
 
 
 class DataSettings(JsonInteractor):
@@ -279,8 +335,7 @@ class DataSettings(JsonInteractor):
                                 text="Back to Home",
                                 fg="white",
                                 bg="green",
-                                command=lambda: confirm_box(self.return_home, "Unsaved changes will be rolled back.\n "
-                                                                              "Are you sure?"))
+                                command=self.return_home_smart)
 
         home_button.grid(row=0,
                          column=0,
@@ -353,8 +408,7 @@ class DataSettings(JsonInteractor):
 
         confirm = tk.Button(bottom,
                             text="Confirm",
-                            command=lambda: confirm_box(self.return_home, "Are you sure you want to save your changes?",
-                                                        "confirm"),
+                            command=self.confirm_smart,
                             fg="white",
                             bg="red",
                             height=5,
@@ -378,7 +432,9 @@ class TubeSettings(JsonInteractor):
         self.columnconfigure(0, weight=1)
         self.widgets = {}
         self.manager = SettingsManager(f"tube{self.no}")
+        self.portal = tk.Button(
 
+        )
         top = tk.Frame(self,
                        bg="red",
                        )
@@ -437,8 +493,7 @@ class TubeSettings(JsonInteractor):
                                 text="Back to Home",
                                 fg="white",
                                 bg="green",
-                                command=lambda: confirm_box(self.return_home, "Unsaved changes will be rolled back.\n "
-                                                                              "Are you sure?"))
+                                command= self.return_home_smart)
 
         home_button.grid(row=0,
                          column=0,
@@ -501,8 +556,7 @@ class TubeSettings(JsonInteractor):
 
         confirm = tk.Button(bottom,
                             text="Confirm",
-                            command=lambda: confirm_box(self.return_home, "Are you sure you want to save your changes?",
-                                                        "confirm"),
+                            command=self.confirm_smart,
                             fg="white",
                             bg="red",
                             height=5,
@@ -513,7 +567,31 @@ class TubeSettings(JsonInteractor):
                      # sticky="news",
                      )
 
+        self.button_colour_change()
 
+    def are_widgets_online(self):
+        """ Used to check whether all widgets are online or not.
+        My definition of 'online' is when all widgets are toggled 'On'.
+        :return: True if all widgets are 'On', False otherwise.
+        """
+        for key, widget in self.widgets.items():
+            if widget.get() == "On":
+                return True
+        return False
+
+    def _save_and_go_home(self):
+        self.update_settings()
+        self.manager.save()
+        self.button_colour_change()
+        confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. "
+                             "Would you like to restart now?")
+        self.controller.show_frame(Home)
+
+    def button_colour_change(self):
+        if self.are_widgets_online():
+            self.controller.frames[Home].tubes[self.no-1]["bg"] = "green"
+        else:
+            self.controller.frames[Home].tubes[self.no-1]["bg"] = "red"
 
     def __repr__(self):
         return "Tube " + str(self.no)

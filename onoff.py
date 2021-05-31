@@ -15,20 +15,18 @@ class OnOffButton(tk.Button):
         self["text"] = text
         self["command"] = self.switch
         self["fg"] = "white"
-        self.value_holder = tk.IntVar(self)
         self.changed = False
         self.update_settings(text)
-        self.value_holder.trace("w", self._change)
 
     def switch(self):
         """ Flips the switch
         If the button is on, turn it off. If the button is off, turn it on.
         """
+        self._change()
         if self.value:
             self.update_settings("Off")
         else:
             self.update_settings("On")
-        #print(self.value_holder.get())
 
     def get(self):
         return self.translate(self.value)
@@ -53,8 +51,6 @@ class OnOffButton(tk.Button):
         """
         self.settings = OnOffButton.mode[text]
         self.value = self.settings[0]
-
-        self.value_holder.set(self.value)
         self.config(text=text)
         self["bg"] = self.settings[1]
 
