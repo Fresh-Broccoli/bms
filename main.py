@@ -10,10 +10,10 @@ import os
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from collections import OrderedDict
 from two import TwoLiveData
 from treeUI import StakeholderManager
 from popups import confirm_box
-# from onoff import OnOffButton
 from info_button import InfoButton
 from menu import DropDownBox
 from bio_data import SettingsManager
@@ -30,6 +30,15 @@ LARGE_FONT_BOLD = LARGE_FONT[0] + " bold", 12
 class Application(tk.Tk):
 
     def __init__(self, *args, **kwargs):
+        """ Initiallises the UI.
+        This class is the hub for all important features:
+        - Live data visualiser
+        - Hardware manager
+        - Tk Frames/Windows that'll be used to display the UI.
+
+        :param args: Needed for inheritence
+        :param kwargs: Needed for inheritence
+        """
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.attributes("-fullscreen", True)
@@ -38,7 +47,9 @@ class Application(tk.Tk):
         # self.bind("<F11>", self.toggleFullScreen)
         # self.bind("<Escape>", self.quitFullScreen)
 
-        self.live_data_manager = TwoLiveData()
+        #self.live_data_manager = TwoLiveData()
+
+        self.hardware_manager = None
 
         # tk.Tk.iconbitmap(self, default="leaf.ico") # Activating this crashes the Pi version.
         tk.Tk.wm_title(self, "Bioreactor Monitoring System")
@@ -48,19 +59,8 @@ class Application(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        self.frames = {}
-
-        for F in (Home, DataSettings, StakeholderSettings):
-            frame = F(container, self)
-            self.frames[F] = frame
-            frame.grid(row=0, column=0, sticky="nsew")
-
-        for t in ["T1", "T2", "T3", "T4", "T5", "T6"]:
-            frame = TubeSettings(container, self)
-            self.frames[t] = frame
-            frame.grid(row=0,column=0,sticky="news")
-
-        self.show_frame(Home)
+        self.home_page = Home(container, self)
+        self.home_page.grid(row=0, column=0, sticky="news")
 
     def toggleFullScreen(self, event):
         self.fullScreenState = not self.fullScreenState
@@ -70,19 +70,17 @@ class Application(tk.Tk):
         self.fullScreenState = False
         self.attributes("-fullscreen", self.fullScreenState)
 
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
-
-    def show_frame_and_do(self, cont, func, *args, **kwargs):
-        self.show_frame(cont)
-        func(*args, *kwargs)
-
 class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        self.controller = controller
+        self.settings_frames = {}
+        self.tube_frames = OrderedDict()
+        for F in (DataSettings, StakeholderSettings):
+            frame = F(parent, self)
+            self.settings_frames[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=5)
@@ -130,7 +128,7 @@ class Home(tk.Frame):
                                text="Data Settings",
                                fg="white",
                                bg="black",
-                               command=lambda: controller.show_frame(DataSettings))
+                               command=lambda: self.show_settings_frame(DataSettings))
 
         bio_button.grid(row=1, column=12, rowspan=3, columnspan=1, sticky="news")
 
@@ -138,26 +136,40 @@ class Home(tk.Frame):
                                  text="Stakeholder Settings",
                                  fg="white",
                                  bg="black",
-                                 command=lambda: controller.show_frame(StakeholderSettings))
+                                 command=lambda: self.show_settings_frame(StakeholderSettings))
 
         stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
 
         self.tubes = self.tube_button_maker(bottom)
 
-        # Can't add unique commands in a for-loop for some reason...
-        self.tubes[0]["command"] = lambda: controller.show_frame("T1")
-        self.tubes[1]["command"] = lambda: controller.show_frame("T2")
-        self.tubes[2]["command"] = lambda: controller.show_frame("T3")
-        self.tubes[3]["command"] = lambda: controller.show_frame("T4")
-        self.tubes[4]["command"] = lambda: controller.show_frame("T5")
-        self.tubes[5]["command"] = lambda: controller.show_frame("T6")
+        for t in ["T1", "T2", "T3", "T4", "T5", "T6"]:
+            frame = TubeSettings(parent, self)
+            self.tube_frames[t] = frame
+            frame.grid(row=0,column=0,sticky="news")
 
-        f = controller.live_data_manager.fig
+        # Can't add unique commands in a for-loop for some reason...
+
+        self.tubes[0]["command"] = lambda: self.show_tube_frame("T1")
+        self.tubes[1]["command"] = lambda: self.show_tube_frame("T2")
+        self.tubes[2]["command"] = lambda: self.show_tube_frame("T3")
+        self.tubes[3]["command"] = lambda: self.show_tube_frame("T4")
+        self.tubes[4]["command"] = lambda: self.show_tube_frame("T5")
+        self.tubes[5]["command"] = lambda: self.show_tube_frame("T6")
+        
+        self.live_data_manager = TwoLiveData(self)
+        f = self.live_data_manager.fig
         canvas = FigureCanvasTkAgg(f, mid)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.ani = self.live_data_manager.animator() # Allows data visualisation.
+        self.show_frame()
 
     def tube_button_maker(self, parent, buttons=6):
+        """ Makes buttons needed to direct users to individual tube settings
+        :param parent: a Tk.Frame that the buttons will belong to.
+        :param buttons: an integer denoting the number of buttons that'll be created. Defaults to 6.
+        :return: Returns a list of references to all the buttons created by this function.
+        """
         out = []
 
         for i in range(1, buttons+1):
@@ -175,9 +187,30 @@ class Home(tk.Frame):
 
         return out
 
+    def update_visualiser(self, settings):
+        self.ani.event_source.interval = self.live_data_manager.translate_interval(settings["read_interval"])
+        self.live_data_manager.update_data_settings(settings)
+
+    def get_tube_statuses(self):
+        return [tube.are_widgets_online() for key, tube in self.tube_frames.items()]
+
+    def show_settings_frame(self, cont):
+        frame = self.settings_frames[cont]
+        frame.tkraise()
+
+    def show_tube_frame(self, cont):
+        frame = self.tube_frames[cont]
+        frame.tkraise()
+
+    def show_frame(self):
+        self.tkraise()
+
+    def show_frame_and_do(self,frame_func, cont, func, *args, **kwargs):
+        frame_func(cont)
+        func(*args, *kwargs)
+
     def __repr__(self):
         return "Home"
-
 
 class JsonInteractor(tk.Frame):
     def __init__(self, parent, controller):
@@ -213,7 +246,6 @@ class JsonInteractor(tk.Frame):
     def _reset(self):
         """ Private reset
         Resets all widgets with no conditions.
-        :return:
         """
         for _, widget in self.widgets.items():
             widget.reset()
@@ -222,7 +254,7 @@ class JsonInteractor(tk.Frame):
         """ Reset all widgets and return home
         """
         self._reset()
-        self.controller.show_frame(Home)
+        self.controller.show_frame()
 
     def return_home(self, mode="reset"):
         """ **Outdated**
@@ -235,8 +267,9 @@ class JsonInteractor(tk.Frame):
         elif mode == "confirm":
             self.update_settings()
             self.manager.save()
+            #self.controller.live_data_manager.load_settings()
             confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
-        self.controller.show_frame(Home)
+        self.controller.show_frame()
 
     def return_home_smart(self):
         """ A smarter version of return_home
@@ -246,7 +279,7 @@ class JsonInteractor(tk.Frame):
         """
         self._check_changes() # Updates manager's changed status by going through each widget
         if not self.manager.is_changed(): # If there are no changes,
-            self.controller.show_frame(Home) # return home
+            self.controller.show_frame() # return home
         else: # Otherwise, ask the user whether they're certain that they want to undo their changes, if so, go home
             # else, do nothing.
             confirm_box(self.reset_and_go_home, "You have unsaved changes, are you sure you want to return home without saving?")
@@ -259,11 +292,13 @@ class JsonInteractor(tk.Frame):
             confirm_box(self._save_and_go_home, "Are you sure you want to save your current settings?")
 
     def _save_and_go_home(self):
+        #print("Default save and go home")
         self.update_settings()
         self.manager.save()
-        confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
-        self.controller.show_frame(Home)
-
+        settings = self.manager.get()
+        self.controller.update_visualiser(settings)
+        #confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
+        self.controller.show_frame()
 
 
 class DataSettings(JsonInteractor):
@@ -432,9 +467,7 @@ class TubeSettings(JsonInteractor):
         self.columnconfigure(0, weight=1)
         self.widgets = {}
         self.manager = SettingsManager(f"tube{self.no}")
-        self.portal = tk.Button(
 
-        )
         top = tk.Frame(self,
                        bg="red",
                        )
@@ -580,18 +613,22 @@ class TubeSettings(JsonInteractor):
         return False
 
     def _save_and_go_home(self):
+        #print("Tube save and go home")
         self.update_settings()
         self.manager.save()
         self.button_colour_change()
-        confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. "
-                             "Would you like to restart now?")
-        self.controller.show_frame(Home)
+        self.controller.live_data_manager.update_tube_status(self.no, self.are_widgets_online())
+        #self.controller.live_data_manager.update_data_settings(self.manager.get())
+        #confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. "
+        #                     "Would you like to restart now?")
+        self.controller.show_frame()
 
     def button_colour_change(self):
         if self.are_widgets_online():
-            self.controller.frames[Home].tubes[self.no-1]["bg"] = "green"
+            #dir(self.controller))
+            self.controller.tubes[self.no-1]["bg"] = "green"
         else:
-            self.controller.frames[Home].tubes[self.no-1]["bg"] = "red"
+            self.controller.tubes[self.no-1]["bg"] = "red"
 
     def __repr__(self):
         return "Tube " + str(self.no)
@@ -630,7 +667,7 @@ class StakeholderSettings(tk.Frame):
             text="Back to Home",
             fg="white",
             bg="green",
-            command=lambda: controller.show_frame(Home)
+            command=controller.show_frame
         )
 
         home_button.grid(row=0,
@@ -744,7 +781,7 @@ def print_output(func, *args):
 # Time and tick are copied from:
 # https://www.daniweb.com/programming/software-development/code/216785/tkinter-digital-clock-python
 def tick(page, tick_rate=1000):
-    now = time.strftime("%H:%M:%S")
+    now = time.strftime("%d/%m/%y-%H:%M:%S")
     if page.now != now:
         page.now = now
         page.clock.config(text=now)
@@ -759,6 +796,6 @@ def restart():
 
 if __name__ == "__main__":
     app = Application() # Runs the UI.
-    tick(app.frames[Home]) # Allows the clock to run.
-    ani = app.live_data_manager.animator(1000) # Allows data visualisation.
+    tick(app.home_page) # Allows the clock to run.
+    #ani = app.home_page.live_data_manager.animator() # Allows data visualisation.
     app.mainloop()

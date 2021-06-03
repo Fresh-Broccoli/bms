@@ -1,5 +1,5 @@
 {
-    "read_interval": "5sec",
-    "data_points": "15",
+    "read_interval": "1sec",
+    "data_points": "11",
     "data_life": "1week"
 }
