@@ -29,6 +29,9 @@ class OnOffButton(tk.Button):
             self.update_settings("On")
 
     def get(self):
+        """ Gets the value stored in a button. Either "On" or "Off"
+        :return: A String
+        """
         return self.translate(self.value)
 
     def set(self, mode):
@@ -70,9 +73,15 @@ class OnOffButton(tk.Button):
             raise ValueError
 
     def is_changed(self):
+        """ Checks if the button has been clicked after the state where its changes were saved.
+        :return: a Boolean.
+        """
         return self.changed
 
     def reset(self):
+        """ Resets the button to its previously saved state.
+        This involves resetting values and colours.
+        """
         if self.changed:
             self.switch()
 

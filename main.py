@@ -209,6 +209,13 @@ class Home(tk.Frame):
         frame_func(cont)
         func(*args, *kwargs)
 
+    def get_stakeholders(self):
+        """ Returns a list of stakeholder details.
+        :return: a list of lists, where the first element of a child list is the name of the stakeholder, while the
+        second element is their respective email.
+        """
+        return self.settings_frames[StakeholderSettings].get()
+
     def __repr__(self):
         return "Home"
 
@@ -677,15 +684,15 @@ class StakeholderSettings(tk.Frame):
                          # pady=5,
                          )
 
-        table = StakeholderManager(mid, ["Name", "Email"])
-        table.insert_data_from_csv()
+        self.table = StakeholderManager(mid, controller,["Name", "Email"])
+        self.table.insert_data_from_csv()
 
         add = tk.Button(
             bottom,
             text="Add Stakeholder",
             font=("bold", 20),
             bg="green",
-            command=table.insert_data
+            command=self.table.insert_data
         )
 
         add.grid(row=0,
@@ -700,7 +707,7 @@ class StakeholderSettings(tk.Frame):
             text="Delete Stakeholder",
             font=("bold", 20),
             bg="red",
-            command=lambda: confirm_box(table.delete_data, "Are you sure you want to delete this stakeholder?"),
+            command=lambda: confirm_box(self.table.delete_data, "Are you sure you want to delete this stakeholder?"),
         )
 
         delete.grid(row=0,
@@ -715,7 +722,7 @@ class StakeholderSettings(tk.Frame):
             text="Clear Stakeholders",
             font=("bold", 20),
             bg="white",
-            command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
+            command=lambda: confirm_box(self.table.clear_data, "Are you sure you want to clear all data?")
         )
 
         clear.grid(row=0,
@@ -724,6 +731,12 @@ class StakeholderSettings(tk.Frame):
                    # padx=15,
                    # pady=15,
                    )
+    def get(self):
+        """ Returns the contents of its StakeholderManager.
+        :return: a list of lists, where the first element of a child list is the name of the stakeholder, while the
+        second element is their respective email.
+        """
+        return self.table.get()
 
     def _repr__(self):
         return "StakeholderSettings"

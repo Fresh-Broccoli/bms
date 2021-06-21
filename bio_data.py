@@ -4,7 +4,14 @@ from copy import deepcopy
 
 
 class SettingsManager:
+    """ Manages backend settings for individual tubes and bioreactor settings.
+    """
     def __init__(self, key="tube"):
+        """ Initialises the manager,
+        by loading up either a tube settings or data setting .txt file.
+        Also creates a deepcopy of the loaded settings, which serves as a backup reference.
+        :param key: a String that's either 'tube' or 'data'.
+        """
         self.directory = dir_dict[key]
         with open(self.directory, 'r') as f:
             self.settings = json.load(f)
@@ -12,13 +19,23 @@ class SettingsManager:
         self.changed = False
 
     def get(self):
+        """ Gets the current settings
+        :return: a dictionary that reflects the state of the settings.
+        """
         return self.settings
 
     def update(self, key, value):
+        """ Updates the settings dictionary.
+        :param key: the name of the setting that we want to change.
+        :param value: the value that we want to update the setting with.
+        """
         self.settings[key] = value
         self.changed = True
 
     def save(self):
+        """ Saves the current setting configuration.
+        Save applies to both backend and the .txt file.
+        """
         if self.changed:
             #print(self.settings)
             with open(self.directory, "w+") as f:
@@ -27,10 +44,10 @@ class SettingsManager:
             self.default_settings = self.settings
             print("Saved settings: ", self.settings)
 
-    def settings_set(self, widget, category, key):
-        widget.set(self.settings[category][key])
-
     def is_changed(self):
+        """ Checks to see if this button has been changed after its previous saved state.
+        :return: a Boolean.
+        """
         return self.changed
 
 

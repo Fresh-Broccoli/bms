@@ -39,12 +39,21 @@ class InfoButton(tk.Frame):
             self.button.update_settings(self.button.translate(val))
 
     def is_changed(self):
+        """ Checks to see if this button has been changed after its previous saved state.
+        :return: a Boolean.
+        """
         return self.button.changed
 
     def reset(self):
+        """ Resets the button to its previously saved state.
+        This involves resetting values and colours.
+        """
         if self.button.is_changed():
             self.button.reset()
 
 
     def confirm(self):
+        """ Confirms that changes have been made,
+        by setting variable 'changed' to False.
+        """
         self.button.changed = False
