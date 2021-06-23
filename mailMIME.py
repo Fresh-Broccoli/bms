@@ -1,11 +1,12 @@
 import smtplib
+import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from collections import defaultdict, OrderedDict
 
 class BioreactorGmailBot:
-    def __init__(self, email, password):
+    def __init__(self, parent, email, password):
         """ Initialises the bioreactor email bot
         The bot will first make sure that email is a valid Gmail account before logging onto Gmail with the valid email
         address and password.
@@ -17,13 +18,19 @@ class BioreactorGmailBot:
         email (String): the email address of the bot (must be a Gmail address).
         password (String): password to the bot's Gmail account.
         """
+        self.parent = parent
+        self.time_record = -3600
         try:
             self.validate_gmail(email)
             self.sender_account_info = (email, password)
             self.stakeholders = OrderedDict()
+            self.load_stakeholders()
             #self.stakeholders = defaultdict(lambda: "Value not found")
             self.server = smtplib.SMTP("smtp.gmail.com", 587)
             # For Outlook: smtplib.SMTP('smtp.office365.com', 587)
+
+            # For some reason, starttls doesn't work when I'm connected to my wifi extender. I fear that this might
+            # happen if we connect the Pi to another Raspberry Pi, which is effectively a wifi extender.
             self.server.starttls()
             self.server.login(email, password)
 
@@ -40,6 +47,7 @@ class BioreactorGmailBot:
         message (String): the body of the email. Can be parsed to have variables.
         attach_file (String , optional): the directory of the file we're interested in sending (absolute/relative).
         """
+
         msg = MIMEMultipart()
         msg["Subject"] = subject
         msg["From"] = self.sender_account_info[0]
@@ -47,13 +55,16 @@ class BioreactorGmailBot:
         msg.attach(MIMEText(message))
 
         if attach_file:
-            msg.attach(self.mime_attachment(attach_file))
+            for f in attach_file:
+                if f:
+                    msg.attach(self.mime_attachment(f))
 
         try:
             self.server.sendmail(self.sender_account_info[0], to, msg.as_string().encode('utf-8'))
             print(f"Email sent to {to} successfully!")
-        except:
-            print(f"Failed to send email to {to}...")
+        except Exception as e:
+            print(e)
+            #print(f"Failed to send email to {to}...")
 
     def send_to_all(self, subject="", message="", auto_heading=False, attach_file=None):
         """ Sends an email all email addresses within self.stakeholders.
@@ -69,7 +80,7 @@ class BioreactorGmailBot:
             def m(n):
                 return f"Hello {n},\n\n" + message
         else:
-            def m(n):
+            def m(_):
                 return message
         for name, email in self.stakeholders.items():
             self.send_message(email, subject, m(name), attach_file=attach_file)
@@ -94,7 +105,11 @@ class BioreactorGmailBot:
             self.conditional_send(to, subject, message, condition(args), attach_file=attach_file)
         else:
             if condition:
-                self.send_message(to, subject, message, attach_file=attach_file)
+                for i in range(len(attach_file)):
+                    if attach_file[i]:
+                        if condition[i]:
+                            self.send_message(to, subject, message, attach_file=attach_file[i])
+
 
     def conditional_send_to_all(self, subject, message, condition, *args, auto_heading=False, auto_parse=False,
                                 attach_file=None):
@@ -113,16 +128,28 @@ class BioreactorGmailBot:
         auto_parse (Bool, optional): If True, contents of *args will be used to parse {} of message.
         attach_file (String , optional): the directory of the file we're interested in sending (absolute/relative).
         """
-        if len(self.stakeholders) > 0:
-            message = self.parse_message(message, *args) if auto_parse else message
-            if callable(condition):
-                self.conditional_send_to_all(subject, message, condition(args), auto_heading=auto_heading,
-                                             auto_parse=auto_parse, attach_file=attach_file)
+        temp_time = time.perf_counter()
+        diff = temp_time - self.time_record
+        print(diff)
+        if diff >= 3600:
+            if len(self.stakeholders) > 0:
+                message = self.parse_message(message, *args) if auto_parse else message
+                if callable(condition):
+                    self.conditional_send_to_all(subject, message, condition(*args), auto_heading=auto_heading,
+                                                 auto_parse=auto_parse, attach_file=attach_file)
+                else:
+                    #print("(Before) Attach Files: ", attach_file)
+                    #print("Conditions: ", condition)
+                    if condition:
+                        for i in range(len(condition)):
+                            if not condition[i]:
+                                attach_file[i] = 0
+                        #print("(After) Attach Files: ", attach_file)
+                        if any(attach_file):
+                            self.time_record = temp_time
+                            self.send_to_all(subject, message, auto_heading, attach_file=attach_file)
             else:
-                if condition:
-                    self.send_to_all(subject, message, auto_heading, attach_file=attach_file)
-        else:
-            print("You don't have any stakeholders to direct this email to!")
+                print("You don't have any stakeholders to direct this email to!")
 
     def mime_attachment(self, file):
         """ Prepares attachment for the email.
@@ -178,6 +205,8 @@ class BioreactorGmailBot:
         email (String): the email of the stakeholder.
         """
         self.stakeholders[name] = email
+        #print(self.stakeholders)
+
 
     def remove_stakeholder(self, name):
         """ Removes a specific stakeholder from the system by name.
@@ -223,6 +252,9 @@ class BioreactorGmailBot:
         if email[-10:] != "@gmail.com":
             raise NotGmailError
 
+    def load_stakeholders(self):
+        for name, email in self.parent.get_stakeholders():
+            self.add_stakeholder(name, email)
 
 class NotGmailError(Exception):
     pass

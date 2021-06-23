@@ -5,7 +5,7 @@ class OnOffButton(tk.Button):
     """
     mode = {"On":(1, "green"), "Off":(0, "red")}
 
-    def __init__(self, master, text="On"):
+    def __init__(self, master, text="On", on_command=None, off_command=None):
         """ Constructor
         Initialises the button widget by setting it 'On' by default.
         :param master: the owner of this widget.
@@ -15,22 +15,29 @@ class OnOffButton(tk.Button):
         self["text"] = text
         self["command"] = self.switch
         self["fg"] = "white"
-        self.value_holder = tk.IntVar(self)
         self.changed = False
         self.update_settings(text)
-        self.value_holder.trace("w", self._change)
+        self.on_command = on_command
+        self.off_command = off_command
 
     def switch(self):
         """ Flips the switch
         If the button is on, turn it off. If the button is off, turn it on.
         """
+        self._change()
         if self.value:
             self.update_settings("Off")
+            if (self.off_command is not None):
+                self.off_command()
         else:
             self.update_settings("On")
-        #print(self.value_holder.get())
+            if (self.on_command is not None):
+                self.on_command()
 
     def get(self):
+        """ Gets the value stored in a button. Either "On" or "Off"
+        :return: A String
+        """
         return self.translate(self.value)
 
     def set(self, mode):
@@ -53,8 +60,6 @@ class OnOffButton(tk.Button):
         """
         self.settings = OnOffButton.mode[text]
         self.value = self.settings[0]
-
-        self.value_holder.set(self.value)
         self.config(text=text)
         self["bg"] = self.settings[1]
 
@@ -74,9 +79,15 @@ class OnOffButton(tk.Button):
             raise ValueError
 
     def is_changed(self):
+        """ Checks if the button has been clicked after the state where its changes were saved.
+        :return: a Boolean.
+        """
         return self.changed
 
     def reset(self):
+        """ Resets the button to its previously saved state.
+        This involves resetting values and colours.
+        """
         if self.changed:
             self.switch()
 

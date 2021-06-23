@@ -10,14 +10,15 @@ import os
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from collections import OrderedDict
 from two import TwoLiveData
 from treeUI import StakeholderManager
 from popups import confirm_box
-# from onoff import OnOffButton
 from info_button import InfoButton
 from menu import DropDownBox
-from bio_data import BioSettingsManager
+from bio_data import SettingsManager
 import tkinter as tk
+import RPi.GPIO as GPIO
 
 LARGE_FONT = ("Verdana", 12)
 small_font = ("Verdana", 6)
@@ -30,6 +31,15 @@ LARGE_FONT_BOLD = LARGE_FONT[0] + " bold", 12
 class Application(tk.Tk):
 
     def __init__(self, *args, **kwargs):
+        """ Initiallises the UI.
+        This class is the hub for all important features:
+        - Live data visualiser
+        - Hardware manager
+        - Tk Frames/Windows that'll be used to display the UI.
+
+        :param args: Needed for inheritence
+        :param kwargs: Needed for inheritence
+        """
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.attributes("-fullscreen", True)
@@ -38,7 +48,9 @@ class Application(tk.Tk):
         # self.bind("<F11>", self.toggleFullScreen)
         # self.bind("<Escape>", self.quitFullScreen)
 
-        self.live_data_manager = TwoLiveData()
+        #self.live_data_manager = TwoLiveData()
+
+        self.hardware_manager = None
 
         # tk.Tk.iconbitmap(self, default="leaf.ico") # Activating this crashes the Pi version.
         tk.Tk.wm_title(self, "Bioreactor Monitoring System")
@@ -48,16 +60,8 @@ class Application(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        self.frames = {}
-
-        for F in (Home, BioreactorSettings, StakeholderSettings):
-            frame = F(container, self)
-
-            self.frames[F] = frame
-
-            frame.grid(row=0, column=0, sticky="nsew")
-
-        self.show_frame(Home)
+        self.home_page = Home(container, self)
+        self.home_page.grid(row=0, column=0, sticky="news")
 
     def toggleFullScreen(self, event):
         self.fullScreenState = not self.fullScreenState
@@ -67,15 +71,16 @@ class Application(tk.Tk):
         self.fullScreenState = False
         self.attributes("-fullscreen", self.fullScreenState)
 
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
-
-
 class Home(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.settings_frames = {}
+        self.tube_frames = OrderedDict()
+        for F in (DataSettings, StakeholderSettings):
+            frame = F(parent, self)
+            self.settings_frames[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
 
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -121,10 +126,10 @@ class Home(tk.Frame):
         quit_button.grid(row=0, column=2, sticky="ne")
 
         bio_button = tk.Button(bottom,
-                               text="Bioreactor Settings",
+                               text="Data Settings",
                                fg="white",
                                bg="black",
-                               command=lambda: controller.show_frame(BioreactorSettings))
+                               command=lambda: self.show_settings_frame(DataSettings))
 
         bio_button.grid(row=1, column=12, rowspan=3, columnspan=1, sticky="news")
 
@@ -132,47 +137,350 @@ class Home(tk.Frame):
                                  text="Stakeholder Settings",
                                  fg="white",
                                  bg="black",
-                                 command=lambda: controller.show_frame(StakeholderSettings))
+                                 command=lambda: self.show_settings_frame(StakeholderSettings))
 
         stake_button.grid(row=1, column=14, rowspan=3, columnspan=1, sticky="news")
 
-        tubes = self.tube_button_maker(bottom)
+        self.tubes = self.tube_button_maker(bottom)
 
-        f = controller.live_data_manager.fig
+        for t in ["T1", "T2", "T3", "T4", "T5", "T6"]:
+            frame = TubeSettings(parent, self)
+            self.tube_frames[t] = frame
+            frame.grid(row=0,column=0,sticky="news")
+
+        frame = AllRelays(parent, self)
+        self.tube_frames["T7"] = frame
+        frame.grid(row=0,column=0,sticky="news")
+
+
+        # Can't add unique commands in a for-loop for some reason...
+
+        self.tubes[0]["command"] = lambda: self.show_tube_frame("T1")
+        self.tubes[1]["command"] = lambda: self.show_tube_frame("T2")
+        self.tubes[2]["command"] = lambda: self.show_tube_frame("T3")
+        self.tubes[3]["command"] = lambda: self.show_tube_frame("T4")
+        self.tubes[4]["command"] = lambda: self.show_tube_frame("T5")
+        self.tubes[5]["command"] = lambda: self.show_tube_frame("T6")
+        self.tubes[6]["command"] = lambda: self.show_tube_frame("T7")
+        
+        self.live_data_manager = TwoLiveData(self)
+        f = self.live_data_manager.fig
         canvas = FigureCanvasTkAgg(f, mid)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.ani = self.live_data_manager.animator() # Allows data visualisation.
+        self.show_frame()
 
-    def tube_button_maker(self, parent, buttons=6):
+    def tube_button_maker(self, parent, buttons=7):
+        """ Makes buttons needed to direct users to individual tube settings
+        :param parent: a Tk.Frame that the buttons will belong to.
+        :param buttons: an integer denoting the number of buttons that'll be created. Defaults to 6.
+        :return: Returns a list of references to all the buttons created by this function.
+        """
         out = []
 
-        for i in range(buttons):
+        for i in range(1, buttons+1):
             out.append(
+                tk.Button(
+                    parent,
+                    text=f"Tube {i}",
+                    fg="white",
+                    bg="green",
+                    #command= lambda: controller.show_frame(f"T{i}")
 
-                UserInteractor(str(i),
-                               tk.Button,
-                               parent,
-                               text=f"Tube {i + 1}",
-                               fg="white",
-                               bg="green")
+                )
             )
-
             out[-1].grid(row=2, column=i, sticky="ns")
 
         return out
 
+    def update_visualiser(self, settings):
+        self.ani.event_source.interval = self.live_data_manager.translate_interval(settings["read_interval"])
+        self.live_data_manager.update_data_settings(settings)
 
-class BioreactorSettings(tk.Frame):
+    def get_tube_statuses(self):
+        return [tube.are_widgets_online() for key, tube in self.tube_frames.items()]
 
+    def show_settings_frame(self, cont):
+        frame = self.settings_frames[cont]
+        frame.tkraise()
+
+    def show_tube_frame(self, cont):
+        frame = self.tube_frames[cont]
+        frame.tkraise()
+
+    def show_frame(self):
+        self.tkraise()
+
+    def show_frame_and_do(self,frame_func, cont, func, *args, **kwargs):
+        frame_func(cont)
+        func(*args, *kwargs)
+
+    def get_stakeholders(self):
+        """ Returns a list of stakeholder details.
+        :return: a list of lists, where the first element of a child list is the name of the stakeholder, while the
+        second element is their respective email.
+        """
+        return self.settings_frames[StakeholderSettings].get()
+
+    def __repr__(self):
+        return "Home"
+
+class JsonInteractor(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        #self.manager = SettingsManager()
+
+    def _check_changes(self):
+        """ Private function used for checking whether the manager has been changed.
+        Since there are no other functions that will check for changes in the manager, this function will set the
+        changed status of its manager to False only if none of the widgets have been changed.
+        """
+        for key, widget in self.widgets.items():
+            if widget.is_changed():
+                self.manager.changed = True
+                break
+        else:
+            self.manager.changed = False
+
+    def update_settings(self):
+        for key, widget in self.widgets.items():
+            widget.confirm()
+            self.manager.update(key, widget.get())
+
+    def reset(self):
+        """ Public reset
+        Resets all widgets only if there's a temporary change in its settings.
+        """
+        if self.manager.is_changed():
+            for _, widget in self.widgets.items():
+                widget.reset()
+
+    def _reset(self):
+        """ Private reset
+        Resets all widgets with no conditions.
+        """
+        for _, widget in self.widgets.items():
+            widget.reset()
+
+    def reset_and_go_home(self):
+        """ Reset all widgets and return home
+        """
+        self._reset()
+        self.controller.show_frame()
+
+    def return_home(self, mode="reset"):
+        """ **Outdated**
+        Return home with multiple modes. Can either undo or save changes and then return home.
+        Usage dropped because it will always ask the user whether to save/discard changes even if no changes were made.
+        """
+        if mode == "reset":
+            self._check_changes()
+            self.reset()
+        elif mode == "confirm":
+            self.update_settings()
+            self.manager.save()
+            #self.controller.live_data_manager.load_settings()
+            confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
+        self.controller.show_frame()
+
+    def return_home_smart(self):
+        """ A smarter version of return_home
+        Returns home straight-away if there are no changes in the system, otherwise it will ask the user whether they
+        want to return home or not, if so, all widgets will be reset to their initial state (before the user entered
+        this page).
+        """
+        self._check_changes() # Updates manager's changed status by going through each widget
+        if not self.manager.is_changed(): # If there are no changes,
+            self.controller.show_frame() # return home
+        else: # Otherwise, ask the user whether they're certain that they want to undo their changes, if so, go home
+            # else, do nothing.
+            confirm_box(self.reset_and_go_home, "You have unsaved changes, are you sure you want to return home without saving?")
+
+    def confirm_smart(self):
+        self._check_changes()
+        if not self.manager.is_changed():
+            tk.messagebox.showinfo("Invalid", "You haven't changed any settings, so nothing will be saved.")
+        else:
+            confirm_box(self._save_and_go_home, "Are you sure you want to save your current settings?")
+
+    def _save_and_go_home(self):
+        #print("Default save and go home")
+        self.update_settings()
+        self.manager.save()
+        settings = self.manager.get()
+        self.controller.update_visualiser(settings)
+        #confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
+        self.controller.show_frame()
+
+
+class DataSettings(JsonInteractor):
+
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.rowconfigure(0, weight=3)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.widgets = {}
+        self.manager = SettingsManager(key="data")
+
+        top = tk.Frame(self,
+                       bg="red",
+                       )
+        bottom = tk.Frame(self,
+                          bg="blue",
+                          )
+
+        top.grid(row=0, column=0, sticky="nesw")
+        bottom.grid(row=1, column=0, sticky="nesw")
+
+        for i in range(3):
+            if i != 1:
+                top.columnconfigure(i, weight=1)
+                bottom.columnconfigure(i, weight=1)
+            else:
+                top.columnconfigure(i, weight=3)
+                bottom.columnconfigure(i, weight=3)
+
+        for i in range(5):
+            top.rowconfigure(i, weight=1)
+            bottom.rowconfigure(i, weight=1)
+
+
+        data_setting_menu = tk.Frame(top,
+                                     bg="#8bf773",
+                                     )
+        data_setting_menu.grid(row=1,
+                               column=1,
+                               rowspan=3,
+                               sticky="news",
+                               )
+
+        data_setting_menu.rowconfigure(0, weight=1)
+        data_setting_menu.rowconfigure(1, weight=3)
+        data_setting_menu.rowconfigure(2, weight=3)
+        data_setting_menu.columnconfigure(0, weight=1)
+        data_setting_menu.columnconfigure(1, weight=1)
+
+        label = tk.Label(top, text="Data Settings", font=LARGE_FONT_BOLD)
+        label.grid(row=0,
+                   column=1,
+                   sticky="n",
+                   # padx=5,
+                   # pady=5,
+                   )
+
+        data_title = tk.Label(data_setting_menu,
+                              text="Data Settings",
+                              font=LARGE_FONT
+                              )
+
+        data_title.grid(row=0,
+                        column=0,
+                        columnspan=2)
+
+        home_button = tk.Button(top,
+                                text="Back to Home",
+                                fg="white",
+                                bg="green",
+                                command=self.return_home_smart)
+
+        home_button.grid(row=0,
+                         column=0,
+                         sticky="nw",
+                         # padx=5,
+                         # pady=5
+                         )
+
+
+        data_points = DropDownBox(data_setting_menu,
+                                  "No. of data points: ",
+                                  [i for i in range(3, 16)],
+                                  self.manager.get()["data_points"]
+                                  )
+        data_points.grid(row=1,
+                         column=0,
+                         )
+
+        self.widgets["data_points"] = data_points
+
+        read_interval = DropDownBox(data_setting_menu, "Read Interval: ",
+                                    [
+                                        "1sec",
+                                        "5sec",
+                                        "10sec",
+                                        "15sec",
+                                        "30sec",
+                                        "1min",
+                                        "5min",
+                                        "10min",
+                                        "30min",
+                                        "1hour",
+                                        "3hour",
+                                        "6hour",
+                                        "12hour",
+                                        "24hour"
+                                    ],
+                                    self.manager.get()["read_interval"])
+        read_interval.grid(row=1,
+                           column=1,
+                           )
+
+        self.widgets["read_interval"] = read_interval
+
+        data_life = DropDownBox(data_setting_menu, "Data Lifespan: ",
+                                [
+                                    "1day",
+                                    "2day",
+                                    "3day",
+                                    "4day",
+                                    "5day",
+                                    "6day",
+                                    "1week",
+                                    "2week",
+                                    "3week",
+                                    "1mon",
+                                    "2mon",
+                                    "3mon",
+                                    "4mon"
+                                ],
+                                self.manager.get()["data_life"]
+                                )
+
+        data_life.grid(row=1,
+                       column=0,
+                       columnspan=2
+                       )
+
+        self.widgets["data_life"] = data_life
+
+        confirm = tk.Button(bottom,
+                            text="Confirm",
+                            command=self.confirm_smart,
+                            fg="white",
+                            bg="red",
+                            height=5,
+                            width=20
+                            )
+        confirm.grid(row=4,
+                     column=1,
+                     # sticky="news",
+                     )
+    def __repr__(self):
+        return "DataSettings"
+
+class TubeSettings(JsonInteractor):
+    no = 0
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        TubeSettings.no += 1
+        self.no = TubeSettings.no
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
-        self.widgets = {"tubes": {},
-                        "data": {}}
-        self.manager = BioSettingsManager()
+        self.widgets = {}
+        self.manager = SettingsManager(f"tube{self.no}")
 
         top = tk.Frame(self,
                        bg="red",
@@ -211,6 +519,7 @@ class BioreactorSettings(tk.Frame):
         bio_setting_menu.columnconfigure(0, weight=1)
         bio_setting_menu.columnconfigure(1, weight=1)
 
+
         data_setting_menu = tk.Frame(bottom,
                                      bg="#8bf773",
                                      )
@@ -220,13 +529,7 @@ class BioreactorSettings(tk.Frame):
                                sticky="news",
                                )
 
-        data_setting_menu.rowconfigure(0, weight=1)
-        data_setting_menu.rowconfigure(1, weight=3)
-        data_setting_menu.rowconfigure(2, weight=3)
-        data_setting_menu.columnconfigure(0, weight=1)
-        data_setting_menu.columnconfigure(1, weight=1)
-
-        label = tk.Label(top, text="Bioreactor Settings", font=LARGE_FONT_BOLD)
+        label = tk.Label(top, text=f"Tube {self.no} Settings", font=LARGE_FONT_BOLD)
         label.grid(row=0,
                    column=1,
                    sticky="n",
@@ -234,21 +537,11 @@ class BioreactorSettings(tk.Frame):
                    # pady=5,
                    )
 
-        data_title = tk.Label(data_setting_menu,
-                              text="Data Settings",
-                              font=LARGE_FONT
-                              )
-
-        data_title.grid(row=0,
-                        column=0,
-                        columnspan=2)
-
         home_button = tk.Button(top,
                                 text="Back to Home",
                                 fg="white",
                                 bg="green",
-                                command=lambda: confirm_box(self.return_home, "Unsaved changes will be rolled back.\n "
-                                                                              "Are you sure?"))
+                                command= self.return_home_smart)
 
         home_button.grid(row=0,
                          column=0,
@@ -256,11 +549,6 @@ class BioreactorSettings(tk.Frame):
                          # padx=5,
                          # pady=5
                          )
-
-        bio_setting_menu.columnconfigure(0, weight=1)
-        bio_setting_menu.rowconfigure(0, weight=1)
-        bio_setting_menu.rowconfigure(1, weight=3)
-        bio_setting_menu.rowconfigure(2, weight=3)
 
         bio_title = tk.Label(bio_setting_menu, text="Tube Settings", font=LARGE_FONT)
         bio_title.grid(row=0,
@@ -270,110 +558,49 @@ class BioreactorSettings(tk.Frame):
 
         heater = InfoButton(master=bio_setting_menu,
                             message="Heaters: ",
-                            text=self.manager.get()["tubes"]["heater"])
+                            text=self.manager.get()["heater"]
+                            )
         heater.grid(row=1,
                     column=0,
                     # sticky="news",
                     )
 
-        self.widgets["tubes"]["heater"] = heater
+        self.widgets["heater"] = heater
 
         air = InfoButton(master=bio_setting_menu,
                          message="Air Pumps: ",
-                         text=self.manager.get()["tubes"]["air"]
+                         text=self.manager.get()["air"]
                          )
 
         air.grid(row=2,
                  column=0,
                  # sticky="news"
                  )
-        self.widgets["tubes"]["air"] = air
+        self.widgets["air"] = air
 
         light = InfoButton(master=bio_setting_menu,
                            message="Lights: ",
-                           text=self.manager.get()["tubes"]["light"]
+                           text=self.manager.get()["light"]
                            )
         light.grid(row=1,
                    column=1,
                    # sticky="news"
                    )
-        self.widgets["tubes"]["light"] = light
+        self.widgets["light"] = light
 
         food = InfoButton(master=bio_setting_menu,
                           message="Food Pumps: ",
-                          text=self.manager.get()["tubes"]["food"]
+                          text=self.manager.get()["food"]
                           )
         food.grid(row=2,
                   column=1,
                   # sticky="news"
                   )
-        self.widgets["tubes"]["food"] = food
-
-        data_points = DropDownBox(data_setting_menu,
-                                  "No. of data points: ",
-                                  [i for i in range(3, 16)],
-                                  self.manager.get()["data"]["data_points"]
-                                  )
-        data_points.grid(row=1,
-                         column=0,
-                         )
-
-        self.widgets["data"]["data_points"] = data_points
-
-        read_interval = DropDownBox(data_setting_menu, "Read Interval: ",
-                                    {
-                                        "1sec": 1000,
-                                        "5sec": 5000,
-                                        "10sec": 10000,
-                                        "15sec": 15000,
-                                        "30sec": 30000,
-                                        "1min": 60000,
-                                        "5min": 300000,
-                                        "10min": 600000,
-                                        "30min": 1800000,
-                                        "1hour": 3600000,
-                                        "3hour": 10800000,
-                                        "6hour": 21600000,
-                                        "12hour": 43200000,
-                                        "24hour": 86400000
-                                    },
-                                    self.manager.get()["data"]["read_interval"])
-        read_interval.grid(row=1,
-                           column=1,
-                           )
-
-        self.widgets["data"]["read_interval"] = read_interval
-
-        data_life = DropDownBox(data_setting_menu, "Data Lifespan: ",
-                                {
-                                    "1day": 86400000,
-                                    "2day": 172800000,
-                                    "3day": 259200000,
-                                    "4day": 345600000,
-                                    "5day": 432000000,
-                                    "6day": 518400000,
-                                    "1week": 604800000,
-                                    "2week": 1209600000,
-                                    "3week": 1814400000,
-                                    "1mon": 2419200000,
-                                    "2mon": 4838400000,
-                                    "3mon": 7257600000,
-                                    "4mon": 9676800000
-                                },
-                                self.manager.get()["data"]["data_life"]
-                                )
-
-        data_life.grid(row=1,
-                       column=0,
-                       columnspan=2
-                       )
-
-        self.widgets["data"]["data_life"] = data_life
+        self.widgets["food"] = food
 
         confirm = tk.Button(bottom,
                             text="Confirm",
-                            command=lambda: confirm_box(self.return_home, "Are you sure you want to save your changes?",
-                                                        "confirm"),
+                            command=self.confirm_smart,
                             fg="white",
                             bg="red",
                             height=5,
@@ -384,36 +611,39 @@ class BioreactorSettings(tk.Frame):
                      # sticky="news",
                      )
 
-    def _check_changes(self):
-        for category, widget_dict in self.widgets.items():
-            for key, widget in widget_dict.items():
-                if widget.is_changed():
-                    self.manager.changed = True
-                    break
-            if self.manager.is_changed():
-                break
+        self.button_colour_change()
 
-    def update_settings(self):
-        for category, widgets in self.widgets.items():
-            for key, widget in widgets.items():
-                self.manager.update(category, key, widget.get())
+    def are_widgets_online(self):
+        """ Used to check whether all widgets are online or not.
+        My definition of 'online' is when all widgets are toggled 'On'.
+        :return: True if all widgets are 'On', False otherwise.
+        """
+        for key, widget in self.widgets.items():
+            if widget.get() == "On":
+                return True
+        return False
 
-    def reset(self):
-        if self.manager.is_changed():
-            for _, d in self.widgets.items():
-                for _, widget in d.items():
-                    widget.reset()
 
-    def return_home(self, mode="reset"):
-        if mode == "reset":
-            self._check_changes()
-            self.reset()
-        elif mode == "confirm":
-            self.update_settings()
-            self.manager.save()
-            confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. Want to restart now?")
-        self.controller.show_frame(Home)
+    def _save_and_go_home(self):
+        #print("Tube save and go home")
+        self.update_settings()
+        self.manager.save()
+        self.button_colour_change()
+        self.controller.live_data_manager.update_tube_status(self.no, self.are_widgets_online())
+        #self.controller.live_data_manager.update_data_settings(self.manager.get())
+        #confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. "
+        #                     "Would you like to restart now?")
+        self.controller.show_frame()
 
+    def button_colour_change(self):
+        if self.are_widgets_online():
+            #dir(self.controller))
+            self.controller.tubes[self.no-1]["bg"] = "green"
+        else:
+            self.controller.tubes[self.no-1]["bg"] = "red"
+
+    def __repr__(self):
+        return "Tube " + str(self.no)
 
 class StakeholderSettings(tk.Frame):
 
@@ -449,7 +679,7 @@ class StakeholderSettings(tk.Frame):
             text="Back to Home",
             fg="white",
             bg="green",
-            command=lambda: controller.show_frame(Home)
+            command=controller.show_frame
         )
 
         home_button.grid(row=0,
@@ -459,15 +689,15 @@ class StakeholderSettings(tk.Frame):
                          # pady=5,
                          )
 
-        table = StakeholderManager(mid, ["Name", "Email"])
-        table.insert_data_from_csv()
+        self.table = StakeholderManager(mid, controller,["Name", "Email"])
+        self.table.insert_data_from_csv()
 
         add = tk.Button(
             bottom,
             text="Add Stakeholder",
             font=("bold", 20),
             bg="green",
-            command=table.insert_data
+            command=self.table.insert_data
         )
 
         add.grid(row=0,
@@ -482,7 +712,7 @@ class StakeholderSettings(tk.Frame):
             text="Delete Stakeholder",
             font=("bold", 20),
             bg="red",
-            command=lambda: confirm_box(table.delete_data, "Are you sure you want to delete this stakeholder?"),
+            command=lambda: confirm_box(self.table.delete_data, "Are you sure you want to delete this stakeholder?"),
         )
 
         delete.grid(row=0,
@@ -497,7 +727,7 @@ class StakeholderSettings(tk.Frame):
             text="Clear Stakeholders",
             font=("bold", 20),
             bg="white",
-            command=lambda: confirm_box(table.clear_data, "Are you sure you want to clear all data?")
+            command=lambda: confirm_box(self.table.clear_data, "Are you sure you want to clear all data?")
         )
 
         clear.grid(row=0,
@@ -506,26 +736,190 @@ class StakeholderSettings(tk.Frame):
                    # padx=15,
                    # pady=15,
                    )
+    def get(self):
+        """ Returns the contents of its StakeholderManager.
+        :return: a list of lists, where the first element of a child list is the name of the stakeholder, while the
+        second element is their respective email.
+        """
+        return self.table.get()
+
+    def _repr__(self):
+        return "StakeholderSettings"
+
+class AllRelays(JsonInteractor):
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+        self.rowconfigure(0, weight=2)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.widgets = {}
+        self.no = 7
+        self.relay = 16
+        self.relay_length = 8
+        self.manager = SettingsManager(f"tube{self.no}")
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+
+        i = 0
+        while i < (self.relay+1):
+            GPIO.setup(i, GPIO.OUT)
+            GPIO.output(i, GPIO.LOW)
+            i += 1
+
+        top = tk.Frame(self,
+                       bg="red",
+                       )
+        bottom = tk.Frame(self,
+                          bg="blue",
+                          )
+
+        top.grid(row=0, column=0, sticky="nesw")
+        bottom.grid(row=1, column=0, sticky="nesw")
+
+        for i in range(3):
+            if i != 1:
+                top.columnconfigure(i, weight=1)
+                bottom.columnconfigure(i, weight=1)
+            else:
+                top.columnconfigure(i, weight=3)
+                bottom.columnconfigure(i, weight=3)
+
+        for i in range(5):
+            top.rowconfigure(i, weight=1)
+            bottom.rowconfigure(i, weight=1)
+
+        bio_setting_menu = tk.Frame(top,
+                                    bg="#daf542"
+                                    )
+        bio_setting_menu.grid(row=1,
+                              column=1,
+                              rowspan=3,
+                              sticky="news"
+                              )
+
+        for i in range((self.relay // self.relay_length)+1):
+            bio_setting_menu.rowconfigure(i, weight=1)
+
+        for i in range(self.relay_length):
+            bio_setting_menu.columnconfigure(i, weight=1)
 
 
-class TubeSettings(tk.Frame):
+        data_setting_menu = tk.Frame(bottom,
+                                     bg="#8bf773",
+                                     )
+        data_setting_menu.grid(row=0,
+                               column=1,
+                               rowspan=3,
+                               sticky="news",
+                               )
 
-    def __init__(self, parent, controller, number=0):
-        self.number = number
-        tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text=f"Tube {self.number} Settings", font=LARGE_FONT)
-        label.pack(pady=10, padx=10)
+        label = tk.Label(top, text=f"Tube {self.no} Settings", font=LARGE_FONT_BOLD)
+        label.grid(row=0,
+                   column=1,
+                   sticky="n",
+                   # padx=5,
+                   # pady=5,
+                   )
 
-        home_button = tk.Button(self, text="Back to Home",
-                                command=lambda: controller.show_frame(Home))
-        home_button.pack()
-
-        quit_button = tk.Button(self, text="Quit",
+        home_button = tk.Button(top,
+                                text="Back to Home",
                                 fg="white",
-                                bg="red",
-                                command=lambda: confirm_box(controller.quit, "Are you sure you want to quit?"))
-        quit_button.pack()
+                                bg="green",
+                                command= self.return_home_smart)
 
+        home_button.grid(row=0,
+                         column=0,
+                         sticky="nw",
+                         # padx=5,
+                         # pady=5
+                         )
+
+
+        bio_title = tk.Label(bio_setting_menu, text="Tube Settings", font=LARGE_FONT)
+        bio_title.grid(row=0,
+                       column=0,
+                       columnspan=2
+                       )
+
+        column = 0
+        d = {}
+        for i in range(1, self.relay+1):
+            if column >= self.relay_length:
+                column = 0
+            number = str(i)
+            d["relay "+ number] = InfoButton(master=bio_setting_menu,
+                             message=number,
+                             text=self.manager.get()[number],
+                             on_command=self.on_activate(i),
+                             off_command=self.off_activate(i)
+                             )
+            d["relay "+ number].grid(row=((i // (self.relay_length+1))+1),
+                     column=column,
+                     # sticky="news",
+                     )
+            column += 1
+
+            self.widgets[number] = d["relay "+ number]
+
+
+        confirm = tk.Button(bottom,
+                            text="Confirm",
+                            command=self.confirm_smart,
+                            fg="white",
+                            bg="red",
+                            height=5,
+                            width=20
+                            )
+        confirm.grid(row=4,
+                     column=1,
+                     # sticky="news",
+                     )
+
+        self.button_colour_change()
+    def are_widgets_online(self):
+        """ Used to check whether all widgets are online or not.
+        My definition of 'online' is when all widgets are toggled 'On'.
+        :return: True if all widgets are 'On', False otherwise.
+        """
+        for key, widget in self.widgets.items():
+            if widget.get() == "On":
+                return True
+        return False
+
+    def on_activate(self, number):
+        number = number
+        def activate():
+            GPIO.output(number-1, GPIO.HIGH)
+        return activate
+
+
+    def off_activate(self, number):
+        number = number
+        def activate():
+            GPIO.output(number-1, GPIO.LOW)
+        return activate
+
+    def _save_and_go_home(self):
+        #print("Tube save and go home")
+        self.update_settings()
+        self.manager.save()
+        self.button_colour_change()
+        self.controller.live_data_manager.update_tube_status(self.no, self.are_widgets_online())
+        #self.controller.live_data_manager.update_data_settings(self.manager.get())
+        #confirm_box(restart, "Changed settings will require the program to be restarted in order to take effect. "
+        #                     "Would you like to restart now?")
+        self.controller.show_frame()
+
+    def button_colour_change(self):
+        if self.are_widgets_online():
+            #dir(self.controller))
+            self.controller.tubes[self.no-1]["bg"] = "green"
+        else:
+            self.controller.tubes[self.no-1]["bg"] = "red"
+
+    def __repr__(self):
+        return "All Settings"
 
 class UserInteractor:
     """ Class used for creating widgets that allow user-interaction.
@@ -579,7 +973,7 @@ def print_output(func, *args):
 # Time and tick are copied from:
 # https://www.daniweb.com/programming/software-development/code/216785/tkinter-digital-clock-python
 def tick(page, tick_rate=1000):
-    now = time.strftime("%H:%M:%S")
+    now = time.strftime("%d/%m/%y-%H:%M:%S")
     if page.now != now:
         page.now = now
         page.clock.config(text=now)
@@ -594,6 +988,6 @@ def restart():
 
 if __name__ == "__main__":
     app = Application() # Runs the UI.
-    tick(app.frames[Home]) # Allows the clock to run.
-    ani = app.live_data_manager.animator(1000) # Allows data visualisation.
+    tick(app.home_page) # Allows the clock to run.
+    #ani = app.home_page.live_data_manager.animator() # Allows data visualisation.
     app.mainloop()

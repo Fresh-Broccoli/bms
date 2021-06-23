@@ -8,7 +8,7 @@ class InfoButton(tk.Frame):
     in an isolated tk.Frame.
     """
 
-    def __init__(self, master, message, position=tk.RIGHT, **button_param):
+    def __init__(self, master, message, position=tk.RIGHT, on_command=None, off_command=None, **button_param):
         """ Initialises InfoButton
         :param master: the owner of this widget.
         :param message: the text message to be displayed in the tk.Label.
@@ -19,7 +19,7 @@ class InfoButton(tk.Frame):
         """
         super().__init__(master)
         self.label = tk.Label(self, text=message)
-        self.button = OnOffButton(self, **button_param)
+        self.button = OnOffButton(self, on_command=on_command, off_command=off_command, **button_param)
         self.button.pack(side=position, fill=tk.BOTH)
         self.label.pack(side=position, fill=tk.BOTH)
 
@@ -39,12 +39,21 @@ class InfoButton(tk.Frame):
             self.button.update_settings(self.button.translate(val))
 
     def is_changed(self):
+        """ Checks to see if this button has been changed after its previous saved state.
+        :return: a Boolean.
+        """
         return self.button.changed
 
     def reset(self):
+        """ Resets the button to its previously saved state.
+        This involves resetting values and colours.
+        """
         if self.button.is_changed():
             self.button.reset()
 
 
     def confirm(self):
+        """ Confirms that changes have been made,
+        by setting variable 'changed' to False.
+        """
         self.button.changed = False
