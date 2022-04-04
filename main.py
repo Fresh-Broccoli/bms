@@ -980,7 +980,7 @@ def tick(page, tick_rate=1000):
     page.clock.after(tick_rate, lambda: tick(page, tick_rate))
 
 def restart():
-    """ Restarts the entire program.
+    """ Restarts the entire program
     """
     python = sys.executable
     os.execl(python, python, * sys.argv)
